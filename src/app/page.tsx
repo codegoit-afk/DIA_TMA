@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Camera, Calculator, Settings, History, AlertCircle, Syringe, Wheat, Check } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils/utils";
@@ -16,6 +16,14 @@ export default function Home() {
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
   const [sugarError, setSugarError] = useState<string | null>(null);
   const [foodText, setFoodText] = useState<string>(""); // Added for text clarification
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2500); // 2.5 seconds splash screen
+    return () => clearTimeout(timer);
+  }, []);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -44,7 +52,6 @@ export default function Home() {
 
     setSugarError(null);
 
-    // 1. Convert to Base64 using Promise and store it
     const getBase64 = (file: File): Promise<string> => {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -54,12 +61,15 @@ export default function Home() {
       });
     };
     
+    setIsPhotoLoading(true);
+
     try {
       const b64 = await getBase64(file);
       setCalculatorState(prev => ({...prev, base64Image: b64}));
     } catch(e) {
       alert("Ошибка чтения файла");
     } finally {
+      setIsPhotoLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -142,6 +152,19 @@ export default function Home() {
       }
   };
 
+  if (showSplash) {
+    return (
+      <div className="fixed inset-0 bg-[#0f1115] z-[100] flex flex-col items-center justify-center animate-out fade-out fill-mode-forwards duration-500 delay-[2000ms]">
+         <div className="w-64 h-64 bg-indigo-500/20 rounded-full blur-[80px] absolute pointer-events-none" />
+         <Calculator className="w-16 h-16 text-indigo-400 mb-4 animate-bounce" />
+         <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400 tracking-tight animate-pulse">
+            Калькулятор ХЕ
+         </h1>
+         <p className="text-slate-500 mt-2 font-medium tracking-wide">Умный ИИ-расчетчик</p>
+      </div>
+    );
+  }
+
   return (
     <main className="min-h-screen p-4 max-w-md mx-auto relative pb-28">
       
@@ -219,7 +242,7 @@ export default function Home() {
 
         {/* Text Clarification Field (Shown only if photo is uploaded and result not calculated) */}
         {!result && previewUrl && !sugarError && (
-          <div className="space-y-4 translate-y-2 opacity-0 animate-[fade-in_0.5s_ease-out_forwards] delay-150">
+          <div className="space-y-4 animate-fade-in-up">
              <div className="space-y-2">
                <label className="text-sm font-medium text-slate-400">Уточнение для ИИ (необязательно)</label>
                <input 
