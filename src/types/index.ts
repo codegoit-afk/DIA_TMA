@@ -55,3 +55,10 @@ export type FoodLog = {
   actual_dose: number;
   created_at: string;
 };
+
+export type CalculatorState = {
+  sugar: string;
+  previewUrl: string | null;
+  result: { dose: number, xe: number, coef: number, dps: number } | null;
+  aiData: AIResponse | null;
+};

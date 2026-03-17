@@ -5,7 +5,7 @@ export const maxDuration = 60; // For Vercel hosting allow 60s for OpenAI
 
 export async function POST(req: Request) {
   try {
-    const { imageBase64, xeWeight } = await req.json();
+    const { imageBase64, xeWeight, clarification } = await req.json();
 
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json({ error: "OpenAI API key not configured" }, { status: 500 });
@@ -19,6 +19,8 @@ export async function POST(req: Request) {
     const systemPrompt = `
 Вы — опытный врач-эндокринолог и нутрициолог. Ваша задача — максимально точно оценить количество углеводов (ХЕ) на фотографии еды. 
 Контекст пользователя: Вес одной Хлебной Единицы (ХЕ) равен ${xeWeight || 12} граммов углеводов.
+Пользователь также оставил текстовое уточнение к этому фото: "${clarification || "Уточнений нет"}"
+ОБЯЗАТЕЛЬНО учти это уточнение при анализе (например, скрытые ингредиенты, тип теста или начинки).
 
 Верни ответ СТРОГО в формате JSON без markdown разметки:
 {

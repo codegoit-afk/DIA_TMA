@@ -10,19 +10,17 @@ import { useUser } from "@/components/providers/TelegramProvider";
 import { AIResponse } from "@/types";
 
 export default function Home() {
-  const { user } = useUser();
-  const [sugar, setSugar] = useState<string>("");
+  const { user, calculatorState, setCalculatorState } = useUser();
+  const { sugar, previewUrl, result, aiData } = calculatorState;
+
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [sugarError, setSugarError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ dose: number, xe: number, coef: number, dps: number } | null>(null);
-  const [aiData, setAiData] = useState<AIResponse | null>(null);
+  const [foodText, setFoodText] = useState<string>(""); // Added for text clarification
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSugarChange = (val: string) => {
-    setSugar(val);
-    setResult(null); // Reset result on new sugar
+    setCalculatorState(prev => ({...prev, sugar: val, result: null}));
     const num = parseFloat(val.replace(',', '.'));
     if (!isNaN(num) && num < 3.9) {
       setSugarError("Опасно низкий сахар! Сначала съешь 1-2 ХЕ быстрых углеводов, подожди 15 минут.");
@@ -42,10 +40,9 @@ export default function Home() {
     const activeUser = user || { telegram_id: 11111111, username: 'test', first_name: 'Test', role: 'user', created_at: new Date().toISOString() };
 
     const tempUrl = URL.createObjectURL(file);
-    setPreviewUrl(tempUrl);
+    setCalculatorState(prev => ({...prev, previewUrl: tempUrl, result: null, aiData: null}));
 
     setIsPhotoLoading(true);
-    setResult(null);
     setSugarError(null);
 
     try {
@@ -64,13 +61,14 @@ export default function Home() {
       // 2. Send to our OpenAI API
       const aiResponse = await axios.post('/api/analyze', { 
           imageBase64: base64String,
-          xeWeight: 12 // TODO: Fetch from profile
+          xeWeight: 12, // TODO: Fetch from profile
+          clarification: foodText // Sending the added text
       });
 
       if (aiResponse.data.error) throw new Error(aiResponse.data.error);
 
       const aiOutput: AIResponse = aiResponse.data.data;
-      setAiData(aiOutput);
+      setCalculatorState(prev => ({...prev, aiData: aiOutput}));
 
       // 3. Calculate Dose
       const currentSugarNum = parseFloat(sugar.replace(',', '.'));
@@ -83,12 +81,15 @@ export default function Home() {
       if (calcResponse.data.error) throw new Error(calcResponse.data.error);
       
       const calcData = calcResponse.data.data;
-      setResult({
-          dose: calcData.recommended_dose,
-          xe: aiOutput.total_xe,
-          coef: calcData.active_coef,
-          dps: calcData.dps_added
-      });
+      setCalculatorState(prev => ({
+          ...prev,
+          result: {
+              dose: calcData.recommended_dose,
+              xe: aiOutput.total_xe,
+              coef: calcData.active_coef,
+              dps: calcData.dps_added
+          }
+      }));
 
     } catch (error: any) {
       console.error("Upload error full detail:", error);
@@ -113,8 +114,8 @@ export default function Home() {
               actual_dose: result.dose // Simplified: assuming user injects recommended
           });
           alert("Сохранено в историю!");
-          setResult(null);
-          setSugar("");
+          setCalculatorState({ sugar: "", result: null, aiData: null, previewUrl: null });
+          setFoodText("");
       } catch(e) {
           alert("Ошибка сохранения");
       }
@@ -137,7 +138,10 @@ export default function Home() {
       </header>
 
       {/* Main Form */}
-      <div className="space-y-6">
+      <div className="space-y-6 relative z-10">
+        
+        {/* Background decorative blob */}
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
         
         {/* Sugar Input */}
         <div className="space-y-2">
@@ -150,8 +154,8 @@ export default function Home() {
               onChange={(e) => handleSugarChange(e.target.value)}
               placeholder="5.5"
               className={cn(
-                "w-full bg-slate-900 border-2 rounded-2xl p-4 text-3xl font-semibold text-white focus:outline-none transition-colors",
-                sugarError ? "border-red-500/50 focus:border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]" : "border-slate-800 focus:border-blue-500"
+                "w-full glass-input rounded-2xl p-4 text-3xl font-semibold text-white focus:outline-none transition-all duration-300",
+                sugarError ? "border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.15)]" : "focus:border-indigo-500/50 focus:shadow-[0_0_20px_rgba(99,102,241,0.15)] focus:bg-white/5"
               )}
             />
           </div>
@@ -177,15 +181,33 @@ export default function Home() {
 
         {/* Photo Preview */}
         {previewUrl && !result && (
-            <div className="rounded-2xl overflow-hidden border border-slate-700 h-48 w-full relative">
-                <img src={previewUrl} alt="Preview" className="object-cover w-full h-full" />
+            <div className="rounded-2xl overflow-hidden glass-panel h-56 w-full relative group animate-fade-in-up">
+                <img src={previewUrl} alt="Preview" className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
                 {isPhotoLoading && (
-                    <div className="absolute inset-0 bg-slate-900/60 flex flex-col items-center justify-center gap-3">
-                        <div className="w-10 h-10 rounded-full border-t-2 border-b-2 border-blue-400 animate-spin" />
-                        <span className="text-white font-medium">Анализ ИИ...</span>
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+                        <div className="relative">
+                           <div className="w-12 h-12 rounded-full border-t-2 border-b-2 border-indigo-400 animate-spin" />
+                           <div className="absolute inset-0 w-12 h-12 rounded-full border-r-2 border-l-2 border-emerald-400 animate-spin opacity-50" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
+                        </div>
+                        <span className="text-white font-medium tracking-wide animate-pulse">Анализ нейросетью...</span>
                     </div>
                 )}
             </div>
+        )}
+
+        {/* Text Clarification Field (Shown only if sugar is entered and result not calculated) */}
+        {!result && sugar && !sugarError && (
+          <div className="space-y-2 translate-y-2 opacity-0 animate-[fade-in_0.5s_ease-out_forwards] delay-150">
+             <label className="text-sm font-medium text-slate-400">Уточнение для ИИ (необязательно)</label>
+             <input 
+               type="text"
+               value={foodText}
+               onChange={(e) => setFoodText(e.target.value)}
+               placeholder="Например: 'пирожок с картошкой' или 'внутри творог'"
+               className="w-full glass-input rounded-2xl p-4 text-white focus:outline-none focus:border-indigo-500/50 focus:bg-white/5 transition-all duration-300 placeholder:text-slate-500/70"
+             />
+          </div>
         )}
 
         {/* Photo Button (Only show if no result yet) */}
@@ -194,10 +216,10 @@ export default function Home() {
             onClick={() => fileInputRef.current?.click()}
             disabled={isPhotoLoading || !!sugarError || !sugar}
             className={cn(
-                "w-full group relative overflow-hidden rounded-2xl p-6 flex flex-col items-center justify-center gap-3 transition-all active:scale-95",
-                isPhotoLoading ? "bg-slate-800 text-slate-400 cursor-not-allowed" : 
-                (sugarError || !sugar) ? "bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed" :
-                "bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-900/20"
+                "w-full group relative overflow-hidden rounded-2xl p-6 flex flex-col items-center justify-center gap-3 transition-all duration-300 active:scale-95",
+                isPhotoLoading ? "glass-panel text-slate-400 cursor-not-allowed" : 
+                (sugarError || !sugar) ? "glass-panel opacity-60 text-slate-500 cursor-not-allowed" :
+                "bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 shadow-[0_8px_30px_rgb(99,102,241,0.3)] hover:shadow-[0_8px_40px_rgb(99,102,241,0.4)] border border-white/10"
             )}
             >
             {isPhotoLoading ? (
@@ -216,9 +238,12 @@ export default function Home() {
 
         {/* Result Card */}
         {result && aiData && (
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6 animate-in zoom-in-95 fade-in shadow-2xl">
-                <div className="text-center space-y-2 pb-4 border-b border-slate-800/50">
-                    <p className="text-slate-400 text-sm">ИИ насчитал <strong className="text-white">{result.xe} ХЕ</strong></p>
+            <div className="glass-panel rounded-3xl p-6 space-y-6 animate-fade-in-up shadow-2xl relative overflow-hidden">
+                {/* Decorative glow inside card */}
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-[60px]" />
+                
+                <div className="text-center space-y-2 pb-4 border-b border-white/5 relative z-10">
+                    <p className="text-slate-400 text-sm font-medium tracking-wide">Нейросеть оценила в <strong className="text-white">{result.xe} ХЕ</strong></p>
                     <div className="flex justify-center items-center gap-2 text-blue-400">
                         <Syringe className="w-8 h-8" />
                         <span className="text-5xl font-bold">{result.dose}</span>
@@ -233,9 +258,9 @@ export default function Home() {
                         Распознано на тарелке:
                     </p>
                     {aiData.items_breakdown.map((item, idx) => (
-                        <div key={idx} className="flex justify-between text-sm bg-slate-950/50 p-3 rounded-xl">
+                        <div key={idx} className="flex justify-between text-sm glass-input p-3.5 rounded-xl animate-fade-in-up" style={{ animationDelay: `${idx * 100}ms` }}>
                             <span className="text-slate-300">{item.name}</span>
-                            <span className="font-semibold text-white">{item.xe} ХЕ</span>
+                            <span className="font-semibold text-emerald-400">{item.xe} ХЕ</span>
                         </div>
                     ))}
                     {aiData.glycemic_alert && (
@@ -247,9 +272,10 @@ export default function Home() {
 
                 <button 
                   onClick={handleSaveLog}
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white p-4 rounded-2xl font-medium flex items-center justify-center gap-2 transition-colors active:scale-95 shadow-lg shadow-emerald-900/20">
-                    <Check className="w-5 h-5" />
-                    Сохранить и уколоть
+                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white p-4 rounded-2xl font-medium flex items-center justify-center gap-2 transition-all duration-300 active:scale-95 shadow-[0_8px_30px_rgb(16,185,129,0.3)] border border-white/10 relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                    <Check className="w-5 h-5 relative z-10" />
+                    <span className="relative z-10">Сохранить и уколоть</span>
                 </button>
             </div>
         )}
@@ -257,15 +283,15 @@ export default function Home() {
       </div>
 
       {/* Navigation Footer (Floating) */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent pointer-events-none z-50">
-        <div className="max-w-md mx-auto flex gap-2 pointer-events-auto">
-          <Link href="/" className="flex-1 bg-slate-800 text-white rounded-2xl p-4 flex flex-col items-center gap-1 active:scale-95 transition-transform">
-             <Calculator className="w-5 h-5 text-blue-400" />
-             <span className="text-xs font-medium">Калькулятор</span>
+      <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0f1115] via-[#0f1115]/90 to-transparent pointer-events-none z-50">
+        <div className="max-w-md mx-auto flex gap-3 pointer-events-auto">
+          <Link href="/" className="flex-1 glass-panel text-white rounded-2xl p-4 flex flex-col items-center gap-1.5 active:scale-95 transition-all duration-300 hover:bg-white/5 border-indigo-500/30">
+             <Calculator className="w-5 h-5 text-indigo-400" />
+             <span className="text-xs font-medium tracking-wide">Калькулятор</span>
           </Link>
-          <Link href="/logs" className="flex-1 bg-slate-900/80 backdrop-blur-md text-slate-400 hover:text-white rounded-2xl p-4 flex flex-col items-center gap-1 active:scale-95 transition-transform">
+          <Link href="/logs" className="flex-1 glass-panel text-slate-400 hover:text-white rounded-2xl p-4 flex flex-col items-center gap-1.5 active:scale-95 transition-all duration-300 hover:bg-white/5">
              <History className="w-5 h-5" />
-             <span className="text-xs font-medium">История</span>
+             <span className="text-xs font-medium tracking-wide">История</span>
           </Link>
         </div>
       </div>
