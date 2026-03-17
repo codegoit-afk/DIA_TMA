@@ -3,6 +3,7 @@
 import { useEffect, useState, createContext, useContext } from "react";
 import { User, CalculatorState } from "@/types";
 import { Language, translations } from "@/lib/i18n/translations";
+import axios from "axios";
 
 type TelegramContextType = {
     user: User | null;
@@ -52,25 +53,45 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
         const tgUser = WebApp.initDataUnsafe?.user;
         
         if (tgUser) {
-          // In a real app we'd fetch the user role from Supabase here
-          setUser({
-            telegram_id: tgUser.id,
-            username: tgUser.username,
-            first_name: tgUser.first_name,
-            role: 'user', // Default mock
-            created_at: new Date().toISOString()
-          });
+          try {
+            // Register or fetch user from DB to satisfy foreign keys
+            const res = await axios.post('/api/user', {
+               id: tgUser.id,
+               username: tgUser.username,
+               first_name: tgUser.first_name
+            });
+            setUser(res.data.data);
+          } catch(e) {
+            console.error("Failed to sync telegram user", e);
+            setUser({
+              telegram_id: tgUser.id,
+              username: tgUser.username,
+              first_name: tgUser.first_name,
+              role: 'user', 
+              created_at: new Date().toISOString()
+            });
+          }
         }
       } else {
-        // Mock user for local development outside Telegram
         console.log("Not in Telegram or missing data, using mock user");
-        setUser({
-          telegram_id: 11111111,
+        const mockProps = {
+          id: 11111111,
           username: 'mock_user',
-          first_name: 'Mock',
-          role: 'admin',
-          created_at: new Date().toISOString()
-        });
+          first_name: 'Mock Desktop User'
+        };
+        try {
+           const res = await axios.post('/api/user', mockProps);
+           setUser(res.data.data);
+        } catch(e) {
+           console.error("Failed to sync mock user", e);
+           setUser({
+             telegram_id: mockProps.id,
+             username: mockProps.username,
+             first_name: mockProps.first_name,
+             role: 'admin',
+             created_at: new Date().toISOString()
+           });
+        }
       }
     };
 
