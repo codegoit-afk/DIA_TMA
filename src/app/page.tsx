@@ -13,6 +13,7 @@ export default function Home() {
   const { user } = useUser();
   const [sugar, setSugar] = useState<string>("");
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [sugarError, setSugarError] = useState<string | null>(null);
   const [result, setResult] = useState<{ dose: number, xe: number, coef: number, dps: number } | null>(null);
   const [aiData, setAiData] = useState<AIResponse | null>(null);
@@ -39,6 +40,9 @@ export default function Home() {
     
     // TEMPORARY: If user is somehow null in browser, use a fast mock instead of silently failing
     const activeUser = user || { telegram_id: 11111111, username: 'test', first_name: 'Test', role: 'user', created_at: new Date().toISOString() };
+
+    const tempUrl = URL.createObjectURL(file);
+    setPreviewUrl(tempUrl);
 
     setIsPhotoLoading(true);
     setResult(null);
@@ -118,7 +122,7 @@ export default function Home() {
       {/* Header */}
       <header className="flex items-center justify-between mb-8 pt-4">
         <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-          Калькулятор ХЕ
+          Калькулятор ХЕ <span className="text-sm text-slate-500">(v2)</span>
         </h1>
         <Link 
           href="/settings"
@@ -166,6 +170,19 @@ export default function Home() {
             onChange={handleFileChange}
             className="hidden"
         />
+
+        {/* Photo Preview */}
+        {previewUrl && !result && (
+            <div className="rounded-2xl overflow-hidden border border-slate-700 h-48 w-full relative">
+                <img src={previewUrl} alt="Preview" className="object-cover w-full h-full" />
+                {isPhotoLoading && (
+                    <div className="absolute inset-0 bg-slate-900/60 flex flex-col items-center justify-center gap-3">
+                        <div className="w-10 h-10 rounded-full border-t-2 border-b-2 border-blue-400 animate-spin" />
+                        <span className="text-white font-medium">Анализ ИИ...</span>
+                    </div>
+                )}
+            </div>
+        )}
 
         {/* Photo Button (Only show if no result yet) */}
         {!result && (
