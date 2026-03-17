@@ -2,17 +2,21 @@
 
 import { useEffect, useState, createContext, useContext } from "react";
 import { User, CalculatorState } from "@/types";
+import { Language, translations } from "@/lib/i18n/translations";
 
 type TelegramContextType = {
     user: User | null;
     calculatorState: CalculatorState;
     setCalculatorState: React.Dispatch<React.SetStateAction<CalculatorState>>;
+    language: Language;
+    setLanguage: React.Dispatch<React.SetStateAction<Language>>;
+    t: typeof translations.ru;
 };
 
 const defaultCalcState: CalculatorState = {
   sugar: "",
-  previewUrl: null,
-  base64Image: null,
+  previewUrls: [],
+  base64Images: [],
   result: null,
   aiData: null
 };
@@ -20,7 +24,10 @@ const defaultCalcState: CalculatorState = {
 const TelegramContext = createContext<TelegramContextType>({ 
     user: null,
     calculatorState: defaultCalcState,
-    setCalculatorState: () => {}
+    setCalculatorState: () => {},
+    language: 'ru',
+    setLanguage: () => {},
+    t: translations.ru
 });
 
 export const useUser = () => useContext(TelegramContext);
@@ -28,6 +35,9 @@ export const useUser = () => useContext(TelegramContext);
 export function TelegramProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [calculatorState, setCalculatorState] = useState<CalculatorState>(defaultCalcState);
+  const [language, setLanguage] = useState<Language>('ru');
+
+  const t = translations[language];
 
   useEffect(() => {
     // Check if we are running inside Telegram Web App
@@ -68,7 +78,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-      <TelegramContext.Provider value={{ user, calculatorState, setCalculatorState }}>
+      <TelegramContext.Provider value={{ user, calculatorState, setCalculatorState, language, setLanguage, t }}>
           {children}
       </TelegramContext.Provider>
   );

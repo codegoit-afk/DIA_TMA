@@ -5,14 +5,14 @@ export const maxDuration = 60; // For Vercel hosting allow 60s for OpenAI
 
 export async function POST(req: Request) {
   try {
-    const { imageBase64, xeWeight, clarification } = await req.json();
+    const { imageBase64Array, xeWeight, clarification } = await req.json();
 
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json({ error: "OpenAI API key not configured" }, { status: 500 });
     }
 
-    if (!imageBase64) {
-      return NextResponse.json({ error: "No image provided" }, { status: 400 });
+    if (!imageBase64Array || !Array.isArray(imageBase64Array) || imageBase64Array.length === 0) {
+      return NextResponse.json({ error: "No images provided" }, { status: 400 });
     }
 
     // Prepare system prompt for GPT-4o
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
 1. Стандартный пирожок с начинкой (картошка/повидло) весит около 100-150г. Это примерно 4-6 ХЕ в зависимости от теста. 
 2. Большой жареный чебурек или крупный пирожок весит 200-250г. Тесто плотное, впитывает масло. Содержит минимум 10.5 - 12 ХЕ.
 3. Оценивай масштаб по окружающим предметам (руки, салфетки). Если предмет выглядит массивно, выбирай вес по верхней границе.
-4. Итоговое total_xe ДОЛЖНО быть суммой всех ХЕ по честному расчету, но с тенденцией к легкому запасу (лучше +1 ХЕ, чем -1 ХЕ).
+4. Итоговое количество ХЕ ВЫДАВАЙ КАК ДИАПАЗОН (xe_min и xe_max). Если уверен точно — разброс минимальный (например 5.0 - 5.5). Если нет — шире (10.0 - 12.0).
 
 Верни ответ СТРОГО в формате JSON без markdown разметки:
 {
@@ -45,7 +45,8 @@ export async function POST(req: Request) {
       "xe": 6.25
     }
   ],
-  "total_xe": 6.25,
+  "xe_min": 10.5,
+  "xe_max": 12.0,
   "glycemic_alert": "Краткое предупреждение о ГИ."
 }`;
 
@@ -61,14 +62,14 @@ export async function POST(req: Request) {
           {
             role: "user",
             content: [
-              { type: "text", text: "Проанализируй эту еду." },
-              {
+              { type: "text", text: "Проанализируй эту еду и упаковки, если они есть." },
+              ...imageBase64Array.map((b64: string) => ({
                 type: "image_url",
                 image_url: {
-                  url: `data:image/jpeg;base64,${imageBase64}`,
+                  url: `data:image/jpeg;base64,${b64}`,
                   detail: "high"
                 }
-              }
+              }))
             ]
           }
         ],

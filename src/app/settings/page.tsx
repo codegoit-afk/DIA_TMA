@@ -4,8 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save, Plus, Trash2 } from "lucide-react";
 import { CoefMatrixRow } from "@/types";
+import { useUser } from "@/components/providers/TelegramProvider";
 
 export default function SettingsPage() {
+  const { t } = useUser();
   const [hypoThreshold, setHypoThreshold] = useState("3.9");
   const [targetSugar, setTargetSugar] = useState("5.5");
   const [xeWeight, setXeWeight] = useState("12");
@@ -41,31 +43,31 @@ export default function SettingsPage() {
         <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors text-slate-300 backdrop-blur-sm">
           <ArrowLeft className="w-6 h-6" />
         </Link>
-        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400 tracking-tight">Настройки</h1>
+        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400 tracking-tight">{t.settings}</h1>
       </header>
 
       <div className="space-y-8 relative z-10">
         {/* Basic Settings */}
         <section className="space-y-4 glass-panel p-6 rounded-3xl animate-fade-in-up">
-          <h2 className="text-lg font-semibold text-slate-200 border-b border-white/10 pb-3">Базовые параметры</h2>
+          <h2 className="text-lg font-semibold text-slate-200 border-b border-white/10 pb-3">{t.basic_settings}</h2>
           
           <div className="grid grid-cols-2 gap-5 pt-2">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-400 tracking-wide">Порог гипо (ммоль/л)</label>
+              <label className="text-xs font-medium text-slate-400 tracking-wide">{t.hypo_threshold}</label>
               <input 
                 type="number" step="0.1" value={hypoThreshold} onChange={(e) => setHypoThreshold(e.target.value)}
                 className="w-full glass-input rounded-xl p-3 text-white focus:border-indigo-500/50 focus:bg-white/5 focus:outline-none transition-all"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-400 tracking-wide">Идеальный сахар</label>
+              <label className="text-xs font-medium text-slate-400 tracking-wide">{t.target_sugar}</label>
               <input 
                 type="number" step="0.1" value={targetSugar} onChange={(e) => setTargetSugar(e.target.value)}
                 className="w-full glass-input rounded-xl p-3 text-white focus:border-indigo-500/50 focus:bg-white/5 focus:outline-none transition-all"
               />
             </div>
             <div className="space-y-1.5 col-span-2 pt-2">
-              <label className="text-xs font-medium text-slate-400 tracking-wide">Вес 1 ХЕ (в граммах углеводов)</label>
+              <label className="text-xs font-medium text-slate-400 tracking-wide">{t.xe_weight_label}</label>
               <div className="flex glass-input rounded-xl overflow-hidden p-1 shadow-inner">
                 {[10, 11, 12, 15].map(w => (
                   <button 
@@ -84,17 +86,17 @@ export default function SettingsPage() {
         {/* Matrix Settings */}
         <section className="space-y-4 glass-panel p-6 rounded-3xl animate-fade-in-up" style={{ animationDelay: '150ms' }}>
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <h2 className="text-lg font-semibold text-slate-200">Матрица коэффициентов</h2>
+            <h2 className="text-lg font-semibold text-slate-200">{t.matrix_settings}</h2>
             <button onClick={handleAddRow} className="text-indigo-400 p-1 px-2 hover:bg-white/10 rounded-lg flex items-center gap-1.5 text-sm font-semibold transition-colors">
-              <Plus className="w-4 h-4" /> Добавить
+              <Plus className="w-4 h-4" /> {t.add}
             </button>
           </div>
           
           <div className="space-y-3 pt-2">
             <div className="flex text-xs font-semibold text-slate-500 tracking-wide px-1">
-              <span className="flex-1">Сахар ОТ</span>
-              <span className="flex-1 text-center">Сахар ДО</span>
-              <span className="w-20 text-right pr-6">Инс на 1 ХЕ</span>
+              <span className="flex-1">{t.sugar_from}</span>
+              <span className="flex-1 text-center">{t.sugar_to}</span>
+              <span className="w-20 text-right pr-6">{t.ins_per_xe}</span>
             </div>
 
             {matrix.map((row, idx) => (
@@ -124,7 +126,7 @@ export default function SettingsPage() {
         <button className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-medium p-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 mt-8 shadow-[0_8px_30px_rgb(16,185,129,0.3)] border border-white/10 active:scale-95 group relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '300ms' }}>
           <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
           <Save className="w-5 h-5 relative z-10" />
-          <span className="relative z-10">Сохранить настройки</span>
+          <span className="relative z-10">{t.save_settings}</span>
         </button>
       </div>
     </main>

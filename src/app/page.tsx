@@ -10,8 +10,8 @@ import { useUser } from "@/components/providers/TelegramProvider";
 import { AIResponse } from "@/types";
 
 export default function Home() {
-  const { user, calculatorState, setCalculatorState } = useUser();
-  const { sugar, previewUrl, base64Image, result, aiData } = calculatorState;
+  const { user, calculatorState, setCalculatorState, t, language, setLanguage } = useUser();
+  const { sugar, previewUrls, base64Images, result, aiData } = calculatorState;
 
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
   const [sugarError, setSugarError] = useState<string | null>(null);
@@ -31,24 +31,21 @@ export default function Home() {
     setCalculatorState(prev => ({...prev, sugar: val, result: null}));
     const num = parseFloat(val.replace(',', '.'));
     if (!isNaN(num) && num < 3.9) {
-      setSugarError("Опасно низкий сахар! Сначала съешь 1-2 ХЕ быстрых углеводов, подожди 15 минут.");
+      setSugarError(t.sugar_low_warning);
     } else {
       setSugarError(null);
     }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) {
-      alert("Файл не выбран!");
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) {
+      alert(t.no_file_error);
       return;
     }
     
-    // TEMPORARY: If user is somehow null in browser, use a fast mock instead of silently failing
-    const activeUser = user || { telegram_id: 11111111, username: 'test', first_name: 'Test', role: 'user', created_at: new Date().toISOString() };
-
-    const tempUrl = URL.createObjectURL(file);
-    setCalculatorState(prev => ({...prev, previewUrl: tempUrl, base64Image: null, result: null, aiData: null}));
+    const tempUrls = files.map(f => URL.createObjectURL(f));
+    setCalculatorState(prev => ({...prev, previewUrls: tempUrls, base64Images: [], result: null, aiData: null}));
 
     setSugarError(null);
 
@@ -64,10 +61,11 @@ export default function Home() {
     setIsPhotoLoading(true);
 
     try {
-      const b64 = await getBase64(file);
-      setCalculatorState(prev => ({...prev, base64Image: b64}));
+      const b64Promises = files.map(f => getBase64(f));
+      const b64s = await Promise.all(b64Promises);
+      setCalculatorState(prev => ({...prev, base64Images: b64s}));
     } catch(e) {
-      alert("Ошибка чтения файла");
+      alert(t.file_read_error);
     } finally {
       setIsPhotoLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -75,20 +73,18 @@ export default function Home() {
   };
 
   const handleStartAnalysis = async () => {
-    if (!base64Image) return;
+    if (base64Images.length === 0) return;
 
-    // TEMPORARY: If user is somehow null in browser, use a fast mock instead of silently failing
     const activeUser = user || { telegram_id: 11111111, username: 'test', first_name: 'Test', role: 'user', created_at: new Date().toISOString() };
 
     setIsPhotoLoading(true);
     setSugarError(null);
 
     try {
-      // 2. Send to our OpenAI API
       const aiResponse = await axios.post('/api/analyze', { 
-          imageBase64: base64Image,
+          imageBase64Array: base64Images,
           xeWeight: 12, // TODO: Fetch from profile
-          clarification: foodText // Sending the added text
+          clarification: foodText
       });
 
       if (aiResponse.data.error) throw new Error(aiResponse.data.error);
@@ -96,22 +92,29 @@ export default function Home() {
       const aiOutput: AIResponse = aiResponse.data.data;
       setCalculatorState(prev => ({...prev, aiData: aiOutput}));
 
-      // 3. Calculate Dose
+      // Calculate Dose (using average XE for calculation, but sending min/max)
       const currentSugarNum = parseFloat(sugar.replace(',', '.'));
       const calcResponse = await axios.post('/api/calculate', {
           telegram_id: activeUser.telegram_id,
           current_sugar: currentSugarNum,
-          total_xe: aiOutput.total_xe
+          total_xe: aiOutput.xe_max // Base it on max for safety during staging/math, will display range later
       });
 
       if (calcResponse.data.error) throw new Error(calcResponse.data.error);
       
       const calcData = calcResponse.data.data;
+      
+      // We will define dose_min based on xe_min safely using coef
+      const dose_max = calcData.recommended_dose;
+      const dose_min = parseFloat(((aiOutput.xe_min * calcData.active_coef) + calcData.dps_added).toFixed(1));
+
       setCalculatorState(prev => ({
           ...prev,
           result: {
-              dose: calcData.recommended_dose,
-              xe: aiOutput.total_xe,
+              dose_min: dose_min > 0 ? dose_min : 0,
+              dose_max: dose_max > 0 ? dose_max : 0,
+              xe_min: aiOutput.xe_min,
+              xe_max: aiOutput.xe_max,
               coef: calcData.active_coef,
               dps: calcData.dps_added
           }
@@ -119,16 +122,16 @@ export default function Home() {
 
     } catch (error: any) {
       console.error("Upload error full detail:", error);
-      const errMsg = error.response?.data?.error || error.message || "Ошибка анализа";
+      const errMsg = error.response?.data?.error || error.message || "Error";
       setSugarError(errMsg);
-      alert("Ошибка при анализе: " + errMsg);
+      alert(errMsg);
     } finally {
       setIsPhotoLoading(false);
     }
   };
 
   const handleResetAnalysis = () => {
-    setCalculatorState(prev => ({...prev, previewUrl: null, base64Image: null, result: null, aiData: null}));
+    setCalculatorState(prev => ({...prev, previewUrls: [], base64Images: [], result: null, aiData: null}));
     setFoodText("");
     setIsPhotoLoading(false);
   };
@@ -136,19 +139,23 @@ export default function Home() {
   const handleSaveLog = async () => {
       if (!user || !result || !aiData) return;
       try {
+          // Average for history
+          const avgDose = parseFloat(((result.dose_min + result.dose_max) / 2).toFixed(1));
+          const avgXe = parseFloat(((result.xe_min + result.xe_max) / 2).toFixed(1));
+
           await axios.post('/api/log', {
               telegram_id: user.telegram_id,
               current_sugar: parseFloat(sugar.replace(',', '.')),
-              total_xe: result.xe,
+              total_xe: avgXe,
               ai_raw_response: aiData,
-              recommended_dose: result.dose,
-              actual_dose: result.dose // Simplified: assuming user injects recommended
+              recommended_dose: avgDose,
+              actual_dose: avgDose
           });
-          alert("Сохранено в историю!");
-          setCalculatorState({ sugar: "", result: null, aiData: null, previewUrl: null, base64Image: null });
+          alert(t.save_success);
+          setCalculatorState({ sugar: "", result: null, aiData: null, previewUrls: [], base64Images: [] });
           setFoodText("");
       } catch(e) {
-          alert("Ошибка сохранения");
+          alert(t.save_error);
       }
   };
 
@@ -158,9 +165,9 @@ export default function Home() {
          <div className="w-64 h-64 bg-indigo-500/20 rounded-full blur-[80px] absolute pointer-events-none" />
          <Calculator className="w-16 h-16 text-indigo-400 mb-4 animate-bounce" />
          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400 tracking-tight animate-pulse">
-            Калькулятор ХЕ
+            {t.app_title}
          </h1>
-         <p className="text-slate-500 mt-2 font-medium tracking-wide">Умный ИИ-расчетчик</p>
+         <p className="text-slate-500 mt-2 font-medium tracking-wide">{t.ai_subtitle}</p>
       </div>
     );
   }
@@ -171,14 +178,23 @@ export default function Home() {
       {/* Header */}
       <header className="flex items-center justify-between mb-8 pt-4">
         <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-          Калькулятор ХЕ <span className="text-sm text-slate-500">(v2)</span>
+          {t.app_title} <span className="text-sm text-slate-500">(v2)</span>
         </h1>
-        <Link 
-          href="/settings"
-          className="p-2 rounded-full bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition shadow-lg"
-        >
-          <Settings className="w-5 h-5" />
-        </Link>
+        <div className="flex gap-2">
+           {/* Language Selector */}
+           <div className="flex bg-slate-800/50 rounded-full p-1 border border-slate-700/50 shadow-inner">
+             <button onClick={() => setLanguage('ru')} className={cn("px-2 py-1 text-xs rounded-full transition-colors", language === 'ru' ? "bg-slate-700 text-white" : "text-slate-400 hover:text-white")}>🇷🇺</button>
+             <button onClick={() => setLanguage('ua')} className={cn("px-2 py-1 text-xs rounded-full transition-colors", language === 'ua' ? "bg-slate-700 text-white" : "text-slate-400 hover:text-white")}>🇺🇦</button>
+             <button onClick={() => setLanguage('en')} className={cn("px-2 py-1 text-xs rounded-full transition-colors", language === 'en' ? "bg-slate-700 text-white" : "text-slate-400 hover:text-white")}>🇬🇧</button>
+           </div>
+           
+           <Link 
+             href="/settings"
+             className="p-2 rounded-full bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition shadow-lg"
+           >
+             <Settings className="w-5 h-5" />
+           </Link>
+        </div>
       </header>
 
       {/* Main Form */}
@@ -189,14 +205,14 @@ export default function Home() {
         
         {/* Sugar Input */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-400">Текущий сахар (ммоль/л)</label>
+          <label className="text-sm font-medium text-slate-400">{t.current_sugar}</label>
           <div className="relative">
             <input 
               type="number"
               inputMode="decimal"
               value={sugar}
               onChange={(e) => handleSugarChange(e.target.value)}
-              placeholder="5.5"
+              placeholder={t.sugar_placeholder}
               className={cn(
                 "w-full glass-input rounded-2xl p-4 text-3xl font-semibold text-white focus:outline-none transition-all duration-300",
                 sugarError ? "border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.15)]" : "focus:border-indigo-500/50 focus:shadow-[0_0_20px_rgba(99,102,241,0.15)] focus:bg-white/5"
@@ -217,39 +233,44 @@ export default function Home() {
         <input 
             type="file" 
             accept="image/*" 
+            multiple
             capture="environment" 
             ref={fileInputRef}
             onChange={handleFileChange}
             className="hidden"
         />
 
-        {/* Photo Preview */}
-        {previewUrl && !result && (
-            <div className="rounded-2xl overflow-hidden glass-panel h-56 w-full relative group animate-fade-in-up">
-                <img src={previewUrl} alt="Preview" className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
+        {/* Photo Previews */}
+        {previewUrls.length > 0 && !result && (
+            <div className="rounded-2xl overflow-x-auto glass-panel p-2 flex gap-3 animate-fade-in-up scrollbar-hide">
+                {previewUrls.map((url, idx) => (
+                  <div key={idx} className="h-32 min-w-[120px] rounded-xl overflow-hidden relative group shrink-0">
+                      <img src={url} alt={`Preview ${idx+1}`} className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
+                  </div>
+                ))}
+
                 {isPhotoLoading && (
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md flex flex-col items-center justify-center gap-4 rounded-2xl z-20">
                         <div className="relative">
-                           <div className="w-12 h-12 rounded-full border-t-2 border-b-2 border-indigo-400 animate-spin" />
-                           <div className="absolute inset-0 w-12 h-12 rounded-full border-r-2 border-l-2 border-emerald-400 animate-spin opacity-50" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
+                           <div className="w-10 h-10 rounded-full border-t-2 border-b-2 border-indigo-400 animate-spin" />
                         </div>
-                        <span className="text-white font-medium tracking-wide animate-pulse">Анализ нейросетью...</span>
+                        <span className="text-white text-sm font-medium tracking-wide animate-pulse">{t.analyzing}</span>
                     </div>
                 )}
             </div>
         )}
 
         {/* Text Clarification Field (Shown only if photo is uploaded and result not calculated) */}
-        {!result && previewUrl && !sugarError && (
+        {!result && previewUrls.length > 0 && !sugarError && (
           <div className="space-y-4 animate-fade-in-up">
              <div className="space-y-2">
-               <label className="text-sm font-medium text-slate-400">Уточнение для ИИ (необязательно)</label>
+               <label className="text-sm font-medium text-slate-400">{t.clarification_label}</label>
                <input 
                  type="text"
                  value={foodText}
                  onChange={(e) => setFoodText(e.target.value)}
-                 placeholder="Например: 'пирожок с картошкой'"
+                 placeholder={t.clarification_placeholder}
                  className="w-full glass-input rounded-2xl p-4 text-white focus:outline-none focus:border-indigo-500/50 focus:bg-white/5 transition-all duration-300 placeholder:text-slate-500/70"
                />
              </div>
@@ -261,21 +282,21 @@ export default function Home() {
                  disabled={isPhotoLoading}
                  className="flex-1 glass-panel text-slate-300 p-4 rounded-2xl font-medium transition-colors hover:bg-white/5 hover:text-white active:scale-95 disabled:opacity-50"
                >
-                 Отмена
+                 {t.cancel}
                </button>
                <button 
                  onClick={handleStartAnalysis}
-                 disabled={isPhotoLoading || !base64Image}
+                 disabled={isPhotoLoading || base64Images.length === 0}
                  className="flex-[2] bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white p-4 rounded-2xl font-medium shadow-[0_8px_30px_rgb(99,102,241,0.3)] active:scale-95 transition-all disabled:opacity-50"
                >
-                 {isPhotoLoading ? "Анализ..." : "Рассчитать ХЕ"}
+                 {isPhotoLoading ? t.analyzing : t.analyze_btn}
                </button>
              </div>
           </div>
         )}
 
         {/* Photo Button (Only show if no photo selected) */}
-        {!previewUrl && (
+        {previewUrls.length === 0 && (
             <button
             onClick={() => fileInputRef.current?.click()}
             disabled={!!sugarError || !sugar}
@@ -287,7 +308,7 @@ export default function Home() {
             >
             <Camera className={cn("w-10 h-10 transition-transform group-hover:scale-110 group-hover:-rotate-3 text-white/90")} />
             <span className="font-medium text-lg text-white">
-                {!sugar ? "Сначала введите сахар" : "Сфотографировать еду"}
+                {!sugar ? t.enter_sugar_first : t.take_photo_btn}
             </span>
             {!sugarError && sugar && (
                 <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 w-full rounded-2xl translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]" />
@@ -298,23 +319,22 @@ export default function Home() {
         {/* Result Card */}
         {result && aiData && (
             <div className="glass-panel rounded-3xl p-6 space-y-6 animate-fade-in-up shadow-2xl relative overflow-hidden">
-                {/* Decorative glow inside card */}
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-[60px]" />
                 
                 <div className="text-center space-y-2 pb-4 border-b border-white/5 relative z-10">
-                    <p className="text-slate-400 text-sm font-medium tracking-wide">Нейросеть оценила в <strong className="text-white">{result.xe} ХЕ</strong></p>
+                    <p className="text-slate-400 text-sm font-medium tracking-wide">{t.ai_estimate_prefix} <strong className="text-white">{result.xe_min === result.xe_max ? result.xe_max : `${result.xe_min} - ${result.xe_max}`} ХЕ</strong></p>
                     <div className="flex justify-center items-center gap-2 text-blue-400">
                         <Syringe className="w-8 h-8" />
-                        <span className="text-5xl font-bold">{result.dose}</span>
-                        <span className="text-xl font-medium self-end mb-1">ед.</span>
+                        <span className="text-5xl font-bold">{result.dose_min === result.dose_max ? result.dose_max : `${result.dose_min}-${result.dose_max}`}</span>
+                        <span className="text-xl font-medium self-end mb-1">{t.units}</span>
                     </div>
-                    <p className="text-xs text-slate-500 pt-2">Коэффициент: {result.coef} {result.dps > 0 && `(+${result.dps} ДПС)`}</p>
+                    <p className="text-xs text-slate-500 pt-2">{t.coef_label} {result.coef} {result.dps > 0 && `(+${result.dps} ${t.dps_label})`}</p>
                 </div>
 
                 <div className="space-y-3">
                     <p className="text-sm font-medium text-slate-300 flex items-center gap-2">
                         <Wheat className="w-4 h-4 text-emerald-500" /> 
-                        Распознано на тарелке:
+                        {t.recognized_items}
                     </p>
                     {aiData.items_breakdown.map((item, idx) => (
                         <div key={idx} className="flex justify-between text-sm glass-input p-3.5 rounded-xl animate-fade-in-up" style={{ animationDelay: `${idx * 100}ms` }}>
@@ -329,17 +349,21 @@ export default function Home() {
                     )}
                 </div>
 
-                <div className="flex gap-3">
+                <div className="text-[10px] sm:text-xs text-slate-500/80 leading-relaxed text-center italic mt-2">
+                    {t.disclaimer}
+                </div>
+
+                <div className="flex gap-3 pt-2 border-t border-white/5">
                    <button 
                      onClick={handleResetAnalysis}
                      className="flex-1 glass-panel text-slate-300 p-4 rounded-2xl font-medium flex items-center justify-center transition-colors hover:bg-white/5 hover:text-white active:scale-95">
-                       Пересчитать
+                       {t.recalculate}
                    </button>
                    <button 
                      onClick={handleSaveLog}
                      className="flex-[2] bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white p-4 rounded-2xl font-medium flex items-center justify-center gap-2 transition-all duration-300 active:scale-95 shadow-[0_8px_30px_rgb(16,185,129,0.3)] border border-white/10">
                        <Check className="w-5 h-5" />
-                       Сохранить
+                       {t.save_and_inject}
                    </button>
                 </div>
             </div>
@@ -352,11 +376,11 @@ export default function Home() {
         <div className="max-w-md mx-auto flex gap-3 pointer-events-auto">
           <Link href="/" className="flex-1 glass-panel text-white rounded-2xl p-4 flex flex-col items-center gap-1.5 active:scale-95 transition-all duration-300 hover:bg-white/5 border-indigo-500/30">
              <Calculator className="w-5 h-5 text-indigo-400" />
-             <span className="text-xs font-medium tracking-wide">Калькулятор</span>
+             <span className="text-xs font-medium tracking-wide">{t.calculator}</span>
           </Link>
           <Link href="/logs" className="flex-1 glass-panel text-slate-400 hover:text-white rounded-2xl p-4 flex flex-col items-center gap-1.5 active:scale-95 transition-all duration-300 hover:bg-white/5">
              <History className="w-5 h-5" />
-             <span className="text-xs font-medium tracking-wide">История</span>
+             <span className="text-xs font-medium tracking-wide">{t.history}</span>
           </Link>
         </div>
       </div>

@@ -40,7 +40,8 @@ export type AIResponse = {
     analysis: string;
   };
   items_breakdown: FoodItemEstimation[];
-  total_xe: number;
+  xe_min: number;
+  xe_max: number;
   glycemic_alert: string | null;
 };
 
@@ -58,8 +59,8 @@ export type FoodLog = {
 
 export type CalculatorState = {
   sugar: string;
-  previewUrl: string | null;
-  base64Image: string | null;
-  result: { dose: number, xe: number, coef: number, dps: number } | null;
+  previewUrls: string[];
+  base64Images: string[];
+  result: { dose_min: number, dose_max: number, xe_min: number, xe_max: number, coef: number, dps: number } | null;
   aiData: AIResponse | null;
 };
