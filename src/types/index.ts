@@ -59,6 +59,7 @@ export type FoodLog = {
 export type CalculatorState = {
   sugar: string;
   previewUrl: string | null;
+  base64Image: string | null;
   result: { dose: number, xe: number, coef: number, dps: number } | null;
   aiData: AIResponse | null;
 };

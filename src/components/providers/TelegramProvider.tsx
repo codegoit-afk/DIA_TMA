@@ -12,6 +12,7 @@ type TelegramContextType = {
 const defaultCalcState: CalculatorState = {
   sugar: "",
   previewUrl: null,
+  base64Image: null,
   result: null,
   aiData: null
 };

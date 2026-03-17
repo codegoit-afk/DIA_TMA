@@ -11,7 +11,7 @@ import { AIResponse } from "@/types";
 
 export default function Home() {
   const { user, calculatorState, setCalculatorState } = useUser();
-  const { sugar, previewUrl, result, aiData } = calculatorState;
+  const { sugar, previewUrl, base64Image, result, aiData } = calculatorState;
 
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
   const [sugarError, setSugarError] = useState<string | null>(null);
@@ -40,27 +40,43 @@ export default function Home() {
     const activeUser = user || { telegram_id: 11111111, username: 'test', first_name: 'Test', role: 'user', created_at: new Date().toISOString() };
 
     const tempUrl = URL.createObjectURL(file);
-    setCalculatorState(prev => ({...prev, previewUrl: tempUrl, result: null, aiData: null}));
+    setCalculatorState(prev => ({...prev, previewUrl: tempUrl, base64Image: null, result: null, aiData: null}));
+
+    setSugarError(null);
+
+    // 1. Convert to Base64 using Promise and store it
+    const getBase64 = (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = error => reject(error);
+      });
+    };
+    
+    try {
+      const b64 = await getBase64(file);
+      setCalculatorState(prev => ({...prev, base64Image: b64}));
+    } catch(e) {
+      alert("Ошибка чтения файла");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleStartAnalysis = async () => {
+    if (!base64Image) return;
+
+    // TEMPORARY: If user is somehow null in browser, use a fast mock instead of silently failing
+    const activeUser = user || { telegram_id: 11111111, username: 'test', first_name: 'Test', role: 'user', created_at: new Date().toISOString() };
 
     setIsPhotoLoading(true);
     setSugarError(null);
 
     try {
-      // 1. Convert to Base64 using Promise
-      const getBase64 = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => resolve((reader.result as string).split(',')[1]);
-          reader.onerror = error => reject(error);
-        });
-      };
-      
-      const base64String = await getBase64(file);
-      
       // 2. Send to our OpenAI API
       const aiResponse = await axios.post('/api/analyze', { 
-          imageBase64: base64String,
+          imageBase64: base64Image,
           xeWeight: 12, // TODO: Fetch from profile
           clarification: foodText // Sending the added text
       });
@@ -98,8 +114,13 @@ export default function Home() {
       alert("Ошибка при анализе: " + errMsg);
     } finally {
       setIsPhotoLoading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const handleResetAnalysis = () => {
+    setCalculatorState(prev => ({...prev, previewUrl: null, base64Image: null, result: null, aiData: null}));
+    setFoodText("");
+    setIsPhotoLoading(false);
   };
 
   const handleSaveLog = async () => {
@@ -114,7 +135,7 @@ export default function Home() {
               actual_dose: result.dose // Simplified: assuming user injects recommended
           });
           alert("Сохранено в историю!");
-          setCalculatorState({ sugar: "", result: null, aiData: null, previewUrl: null });
+          setCalculatorState({ sugar: "", result: null, aiData: null, previewUrl: null, base64Image: null });
           setFoodText("");
       } catch(e) {
           alert("Ошибка сохранения");
@@ -196,41 +217,56 @@ export default function Home() {
             </div>
         )}
 
-        {/* Text Clarification Field (Shown only if sugar is entered and result not calculated) */}
-        {!result && sugar && !sugarError && (
-          <div className="space-y-2 translate-y-2 opacity-0 animate-[fade-in_0.5s_ease-out_forwards] delay-150">
-             <label className="text-sm font-medium text-slate-400">Уточнение для ИИ (необязательно)</label>
-             <input 
-               type="text"
-               value={foodText}
-               onChange={(e) => setFoodText(e.target.value)}
-               placeholder="Например: 'пирожок с картошкой' или 'внутри творог'"
-               className="w-full glass-input rounded-2xl p-4 text-white focus:outline-none focus:border-indigo-500/50 focus:bg-white/5 transition-all duration-300 placeholder:text-slate-500/70"
-             />
+        {/* Text Clarification Field (Shown only if photo is uploaded and result not calculated) */}
+        {!result && previewUrl && !sugarError && (
+          <div className="space-y-4 translate-y-2 opacity-0 animate-[fade-in_0.5s_ease-out_forwards] delay-150">
+             <div className="space-y-2">
+               <label className="text-sm font-medium text-slate-400">Уточнение для ИИ (необязательно)</label>
+               <input 
+                 type="text"
+                 value={foodText}
+                 onChange={(e) => setFoodText(e.target.value)}
+                 placeholder="Например: 'пирожок с картошкой'"
+                 className="w-full glass-input rounded-2xl p-4 text-white focus:outline-none focus:border-indigo-500/50 focus:bg-white/5 transition-all duration-300 placeholder:text-slate-500/70"
+               />
+             </div>
+             
+             {/* Action Buttons for Analysis */}
+             <div className="flex gap-3">
+               <button 
+                 onClick={handleResetAnalysis}
+                 disabled={isPhotoLoading}
+                 className="flex-1 glass-panel text-slate-300 p-4 rounded-2xl font-medium transition-colors hover:bg-white/5 hover:text-white active:scale-95 disabled:opacity-50"
+               >
+                 Отмена
+               </button>
+               <button 
+                 onClick={handleStartAnalysis}
+                 disabled={isPhotoLoading || !base64Image}
+                 className="flex-[2] bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white p-4 rounded-2xl font-medium shadow-[0_8px_30px_rgb(99,102,241,0.3)] active:scale-95 transition-all disabled:opacity-50"
+               >
+                 {isPhotoLoading ? "Анализ..." : "Рассчитать ХЕ"}
+               </button>
+             </div>
           </div>
         )}
 
-        {/* Photo Button (Only show if no result yet) */}
-        {!result && (
+        {/* Photo Button (Only show if no photo selected) */}
+        {!previewUrl && (
             <button
             onClick={() => fileInputRef.current?.click()}
-            disabled={isPhotoLoading || !!sugarError || !sugar}
+            disabled={!!sugarError || !sugar}
             className={cn(
                 "w-full group relative overflow-hidden rounded-2xl p-6 flex flex-col items-center justify-center gap-3 transition-all duration-300 active:scale-95",
-                isPhotoLoading ? "glass-panel text-slate-400 cursor-not-allowed" : 
                 (sugarError || !sugar) ? "glass-panel opacity-60 text-slate-500 cursor-not-allowed" :
                 "bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 shadow-[0_8px_30px_rgb(99,102,241,0.3)] hover:shadow-[0_8px_40px_rgb(99,102,241,0.4)] border border-white/10"
             )}
             >
-            {isPhotoLoading ? (
-                <div className="w-8 h-8 rounded-full border-t-2 border-b-2 border-slate-400 animate-spin" />
-            ) : (
-                <Camera className={cn("w-10 h-10 transition-transform group-hover:scale-110 group-hover:-rotate-3 text-white/90")} />
-            )}
-            <span className="font-medium text-lg">
-                {isPhotoLoading ? "Анализ ИИ..." : !sugar ? "Сначала введите сахар" : "Сфотографировать еду"}
+            <Camera className={cn("w-10 h-10 transition-transform group-hover:scale-110 group-hover:-rotate-3 text-white/90")} />
+            <span className="font-medium text-lg text-white">
+                {!sugar ? "Сначала введите сахар" : "Сфотографировать еду"}
             </span>
-            {!isPhotoLoading && !sugarError && sugar && (
+            {!sugarError && sugar && (
                 <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 w-full rounded-2xl translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]" />
             )}
             </button>
@@ -270,13 +306,19 @@ export default function Home() {
                     )}
                 </div>
 
-                <button 
-                  onClick={handleSaveLog}
-                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white p-4 rounded-2xl font-medium flex items-center justify-center gap-2 transition-all duration-300 active:scale-95 shadow-[0_8px_30px_rgb(16,185,129,0.3)] border border-white/10 relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-                    <Check className="w-5 h-5 relative z-10" />
-                    <span className="relative z-10">Сохранить и уколоть</span>
-                </button>
+                <div className="flex gap-3">
+                   <button 
+                     onClick={handleResetAnalysis}
+                     className="flex-1 glass-panel text-slate-300 p-4 rounded-2xl font-medium flex items-center justify-center transition-colors hover:bg-white/5 hover:text-white active:scale-95">
+                       Пересчитать
+                   </button>
+                   <button 
+                     onClick={handleSaveLog}
+                     className="flex-[2] bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white p-4 rounded-2xl font-medium flex items-center justify-center gap-2 transition-all duration-300 active:scale-95 shadow-[0_8px_30px_rgb(16,185,129,0.3)] border border-white/10">
+                       <Check className="w-5 h-5" />
+                       Сохранить
+                   </button>
+                </div>
             </div>
         )}
 
