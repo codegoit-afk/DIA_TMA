@@ -77,8 +77,10 @@ export default function Home() {
 
       };
     } catch (error: any) {
-      console.error(error);
-      setSugarError(error.response?.data?.error || error.message || "Ошибка анализа");
+      console.error("Upload error full detail:", error);
+      const errMsg = error.response?.data?.error || error.message || "Ошибка анализа";
+      setSugarError(errMsg);
+      alert("Ошибка при анализе: " + errMsg);
     } finally {
       setIsPhotoLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

@@ -17,12 +17,29 @@ export async function POST(req: Request) {
       .eq('telegram_id', telegram_id)
       .single();
 
-    if (profileError || !profileData) {
-      console.error("Profile fetch error:", profileError);
-      return NextResponse.json({ error: "Профиль пользователя не найден. Пожалуйста, заполните настройки." }, { status: 404 });
-    }
+    // Fallback profile if user hasn't configured settings yet
+    const defaultProfile: Profile = {
+        telegram_id: telegram_id,
+        hypo_threshold: 3.9,
+        target_sugar_min: 5.0,
+        target_sugar_max: 7.0,
+        target_sugar_ideal: 6.0,
+        xe_weight: 12,
+        use_k2: false,
+        insulin_dia: 4,
+        isf: 2,
+        coef_matrix: [
+            { min: 0, max: 20, coef: 1.5 } // Default safe coefficient
+        ],
+        updated_at: new Date().toISOString()
+    };
 
-    const profile = profileData as Profile;
+    const profile = profileData ? (profileData as Profile) : defaultProfile;
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.error("Profile fetch error:", profileError);
+      // We log the error but still proceed with defaultProfile to not block the user entirely
+    }
 
     // 2. Check for Hypoglycemia Risk
     if (current_sugar < profile.hypo_threshold) {
