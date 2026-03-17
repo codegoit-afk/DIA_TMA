@@ -45,7 +45,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
       // @ts-ignore
       const WebApp = window.Telegram?.WebApp;
       
-      if (WebApp) {
+      if (WebApp && WebApp.initDataUnsafe && Object.keys(WebApp.initDataUnsafe).length > 0) {
         WebApp.ready();
         WebApp.expand();
         
@@ -63,7 +63,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         // Mock user for local development outside Telegram
-        console.log("Not in Telegram, using mock user");
+        console.log("Not in Telegram or missing data, using mock user");
         setUser({
           telegram_id: 11111111,
           username: 'mock_user',

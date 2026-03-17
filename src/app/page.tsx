@@ -137,14 +137,16 @@ export default function Home() {
   };
 
   const handleSaveLog = async () => {
-      if (!user || !result || !aiData) return;
+      const activeUser = user || { telegram_id: 11111111 };
+      if (!result || !aiData) return;
+      
       try {
           // Average for history
           const avgDose = parseFloat(((result.dose_min + result.dose_max) / 2).toFixed(1));
           const avgXe = parseFloat(((result.xe_min + result.xe_max) / 2).toFixed(1));
 
           await axios.post('/api/log', {
-              telegram_id: user.telegram_id,
+              telegram_id: activeUser.telegram_id,
               current_sugar: parseFloat(sugar.replace(',', '.')),
               total_xe: avgXe,
               ai_raw_response: aiData,
@@ -154,7 +156,8 @@ export default function Home() {
           alert(t.save_success);
           setCalculatorState({ sugar: "", result: null, aiData: null, previewUrls: [], base64Images: [] });
           setFoodText("");
-      } catch(e) {
+      } catch(e: any) {
+          console.error(e);
           alert(t.save_error);
       }
   };
