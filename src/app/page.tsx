@@ -49,43 +49,47 @@ export default function Home() {
     setSugarError(null);
 
     try {
-      // 1. Convert to Base64
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      
-      reader.onload = async () => {
-        const base64String = (reader.result as string).split(',')[1];
-        
-        // 2. Send to our OpenAI API
-        const aiResponse = await axios.post('/api/analyze', { 
-            imageBase64: base64String,
-            xeWeight: 12 // TODO: Fetch from profile
+      // 1. Convert to Base64 using Promise
+      const getBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.onerror = error => reject(error);
         });
-
-        if (aiResponse.data.error) throw new Error(aiResponse.data.error);
-
-        const aiOutput: AIResponse = aiResponse.data.data;
-        setAiData(aiOutput);
-
-        // 3. Calculate Dose
-        const currentSugarNum = parseFloat(sugar.replace(',', '.'));
-        const calcResponse = await axios.post('/api/calculate', {
-            telegram_id: activeUser.telegram_id,
-            current_sugar: currentSugarNum,
-            total_xe: aiOutput.total_xe
-        });
-
-        if (calcResponse.data.error) throw new Error(calcResponse.data.error);
-        
-        const calcData = calcResponse.data.data;
-        setResult({
-            dose: calcData.recommended_dose,
-            xe: aiOutput.total_xe,
-            coef: calcData.active_coef,
-            dps: calcData.dps_added
-        });
-
       };
+      
+      const base64String = await getBase64(file);
+      
+      // 2. Send to our OpenAI API
+      const aiResponse = await axios.post('/api/analyze', { 
+          imageBase64: base64String,
+          xeWeight: 12 // TODO: Fetch from profile
+      });
+
+      if (aiResponse.data.error) throw new Error(aiResponse.data.error);
+
+      const aiOutput: AIResponse = aiResponse.data.data;
+      setAiData(aiOutput);
+
+      // 3. Calculate Dose
+      const currentSugarNum = parseFloat(sugar.replace(',', '.'));
+      const calcResponse = await axios.post('/api/calculate', {
+          telegram_id: activeUser.telegram_id,
+          current_sugar: currentSugarNum,
+          total_xe: aiOutput.total_xe
+      });
+
+      if (calcResponse.data.error) throw new Error(calcResponse.data.error);
+      
+      const calcData = calcResponse.data.data;
+      setResult({
+          dose: calcData.recommended_dose,
+          xe: aiOutput.total_xe,
+          coef: calcData.active_coef,
+          dps: calcData.dps_added
+      });
+
     } catch (error: any) {
       console.error("Upload error full detail:", error);
       const errMsg = error.response?.data?.error || error.message || "Ошибка анализа";
