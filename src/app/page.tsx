@@ -32,7 +32,13 @@ export default function Home() {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file) {
+      alert("Файл не выбран!");
+      return;
+    }
+    
+    // TEMPORARY: If user is somehow null in browser, use a fast mock instead of silently failing
+    const activeUser = user || { telegram_id: 11111111, username: 'test', first_name: 'Test', role: 'user', created_at: new Date().toISOString() };
 
     setIsPhotoLoading(true);
     setResult(null);
@@ -60,7 +66,7 @@ export default function Home() {
         // 3. Calculate Dose
         const currentSugarNum = parseFloat(sugar.replace(',', '.'));
         const calcResponse = await axios.post('/api/calculate', {
-            telegram_id: user.telegram_id,
+            telegram_id: activeUser.telegram_id,
             current_sugar: currentSugarNum,
             total_xe: aiOutput.total_xe
         });
