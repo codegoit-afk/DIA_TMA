@@ -41,10 +41,16 @@ export const translations = {
     xe_weight_label: "Вес 1 ХЕ (в граммах углеводов)",
     matrix_settings: "Матрица коэффициентов",
     add: "Добавить",
-    sugar_from: "Сахар ОТ",
-    sugar_to: "Сахар ДО",
+    xe_from: "ХЕ ОТ",
+    xe_to: "ХЕ ДО",
     ins_per_xe: "Инс на 1 ХЕ",
     save_settings: "Сохранить настройки",
+
+    // Fat split logic
+    fat_alert_title: "Высокое содержание жиров!",
+    fat_alert_desc: "Рекомендуется разделить дозу: уколите 80% сейчас, а оставшиеся 20% — через 1.5 часа (проверьте сахар).",
+    dose_now: "Сразу:",
+    dose_later: "Через 1.5ч:",
 
     // Logs
     logs_title: "История логов",
@@ -92,10 +98,16 @@ export const translations = {
     xe_weight_label: "Вага 1 ХО (у грамах вуглеводів)",
     matrix_settings: "Матриця коефіцієнтів",
     add: "Додати",
-    sugar_from: "Цукор ВІД",
-    sugar_to: "Цукор ДО",
+    xe_from: "ХО ВІД",
+    xe_to: "ХО ДО",
     ins_per_xe: "Інс на 1 ХО",
     save_settings: "Зберегти налаштування",
+
+    // Fat split logic
+    fat_alert_title: "Високий вміст жирів!",
+    fat_alert_desc: "Рекомендується розділити дозу: вколіть 80% зараз, а решту 20% — через 1.5 години (перевірте цукор).",
+    dose_now: "Одразу:",
+    dose_later: "Через 1.5г:",
 
     // Logs
     logs_title: "Історія логів",
@@ -143,10 +155,16 @@ export const translations = {
     xe_weight_label: "Grams of carbs per 1 Exchange (XE)",
     matrix_settings: "Ratio Matrix",
     add: "Add",
-    sugar_from: "Sugar FROM",
-    sugar_to: "Sugar TO",
+    xe_from: "XE FROM",
+    xe_to: "XE TO",
     ins_per_xe: "Insulin per XE",
     save_settings: "Save Settings",
+
+    // Fat split logic
+    fat_alert_title: "High Fat Content!",
+    fat_alert_desc: "Consider a split dose: inject 80% now, and the remaining 20% in 1.5 hours (check your sugar).",
+    dose_now: "Now:",
+    dose_later: "In 1.5h:",
 
     // Logs
     logs_title: "Log History",

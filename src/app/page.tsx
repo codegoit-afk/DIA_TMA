@@ -126,7 +126,8 @@ export default function Home() {
               xe_min: aiOutput.xe_min,
               xe_max: aiOutput.xe_max,
               coef: calcData.active_coef,
-              dps: calcData.dps_added
+              dps: calcData.dps_added,
+              is_high_fat: aiOutput.high_fat || false
           }
       }));
 
@@ -336,15 +337,41 @@ export default function Home() {
                 
                 <div className="text-center space-y-2 pb-4 border-b border-white/5 relative z-10">
                     <p className="text-slate-400 text-sm font-medium tracking-wide">{t.ai_estimate_prefix} <strong className="text-white">{result.xe_min === result.xe_max ? result.xe_max : `${result.xe_min} - ${result.xe_max}`} ХЕ</strong></p>
-                    <div className="flex justify-center items-center gap-2 text-blue-400">
-                        <Syringe className="w-8 h-8" />
-                        <span className="text-5xl font-bold">{result.dose_min === result.dose_max ? result.dose_max : `${result.dose_min}-${result.dose_max}`}</span>
-                        <span className="text-xl font-medium self-end mb-1">{t.units}</span>
-                    </div>
+                    
+                    {result.is_high_fat ? (
+                        <div className="flex flex-col items-center gap-1 pt-2">
+                           <div className="flex items-center gap-2 text-blue-400">
+                               <Syringe className="w-6 h-6" />
+                               <span className="text-4xl font-bold">{Math.round(result.dose_max * 0.8 * 2) / 2}</span>
+                               <span className="text-lg font-medium self-end mb-1">{t.units}</span>
+                           </div>
+                           <p className="text-[10px] text-blue-300 tracking-wide uppercase font-semibold">({t.dose_now})</p>
+                           
+                           <div className="flex items-center gap-2 text-indigo-400 mt-2">
+                               <Syringe className="w-5 h-5 opacity-80" />
+                               <span className="text-2xl font-bold opacity-90">+{Math.round(result.dose_max * 0.2 * 2) / 2}</span>
+                               <span className="text-base font-medium self-end mb-0.5 opacity-90">{t.units}</span>
+                           </div>
+                           <p className="text-[10px] text-indigo-300 tracking-wide uppercase font-semibold opacity-80">({t.dose_later})</p>
+                        </div>
+                    ) : (
+                        <div className="flex justify-center items-center gap-2 text-blue-400">
+                            <Syringe className="w-8 h-8" />
+                            <span className="text-5xl font-bold">{result.dose_min === result.dose_max ? result.dose_max : `${result.dose_min}-${result.dose_max}`}</span>
+                            <span className="text-xl font-medium self-end mb-1">{t.units}</span>
+                        </div>
+                    )}
+                    
                     <p className="text-xs text-slate-500 pt-2">{t.coef_label} {result.coef} {result.dps > 0 && `(+${result.dps} ${t.dps_label})`}</p>
                 </div>
 
                 <div className="space-y-3">
+                    {result.is_high_fat && (
+                        <div className="text-xs bg-indigo-500/10 p-3.5 rounded-xl border border-indigo-500/20 text-indigo-200 animate-fade-in-up">
+                            <p className="font-bold flex items-center gap-1.5 mb-1.5 text-indigo-400"><AlertCircle className="w-4 h-4"/> {t.fat_alert_title}</p>
+                            <p className="opacity-90 leading-relaxed text-[11px] sm:text-xs text-indigo-300/90">{t.fat_alert_desc}</p>
+                        </div>
+                    )}
                     <p className="text-sm font-medium text-slate-300 flex items-center gap-2">
                         <Wheat className="w-4 h-4 text-emerald-500" /> 
                         {t.recognized_items}

@@ -15,13 +15,14 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   
   const [matrix, setMatrix] = useState<CoefMatrixRow[]>([
-    { min: 4.0, max: 7.0, coef: 1.0 },
-    { min: 7.1, max: 10.0, coef: 1.5 },
+    { min: 1.0, max: 8.0, coef: 2.0 },
+    { min: 8.1, max: 15.0, coef: 1.5 },
+    { min: 15.1, max: 99.0, coef: 1.0 }
   ]);
 
   const handleAddRow = () => {
     const lastRow = matrix[matrix.length - 1];
-    setMatrix([...matrix, { min: lastRow ? lastRow.max + 0.1 : 4.0, max: 20.0, coef: 2.0 }]);
+    setMatrix([...matrix, { min: lastRow ? lastRow.max + 0.1 : 1.0, max: 99.0, coef: 1.0 }]);
   };
 
   const handleUpdateRow = (index: number, field: keyof CoefMatrixRow, value: string) => {
@@ -139,8 +140,8 @@ export default function SettingsPage() {
           
           <div className="space-y-3 pt-2">
             <div className="flex text-xs font-semibold text-slate-500 tracking-wide px-1">
-              <span className="flex-1">{t.sugar_from}</span>
-              <span className="flex-1 text-center">{t.sugar_to}</span>
+              <span className="flex-1">{t.xe_from}</span>
+              <span className="flex-1 text-center">{t.xe_to}</span>
               <span className="w-20 text-right pr-6">{t.ins_per_xe}</span>
             </div>
 

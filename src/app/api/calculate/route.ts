@@ -29,7 +29,9 @@ export async function POST(req: Request) {
         insulin_dia: 4,
         isf: 2,
         coef_matrix: [
-            { min: 0, max: 20, coef: 1.5 } // Default safe coefficient
+            { min: 1.0, max: 8.0, coef: 2.0 },
+            { min: 8.1, max: 15.0, coef: 1.5 },
+            { min: 15.1, max: 99.0, coef: 1.0 }
         ],
         updated_at: new Date().toISOString()
     };
@@ -49,7 +51,7 @@ export async function POST(req: Request) {
         });
     }
 
-    // 3. Find Correct Coef from Matrix
+    // 3. Find Correct Coef from Matrix (Depends on XE)
     let activeCoef = 1.0; // Fallback
     const matrix = profile.coef_matrix || [];
     
@@ -58,17 +60,17 @@ export async function POST(req: Request) {
     
     let foundMatch = false;
     for (const row of sortedMatrix) {
-        if (current_sugar >= row.min && current_sugar <= row.max) {
+        if (total_xe >= row.min && total_xe <= row.max) {
             activeCoef = row.coef;
             foundMatch = true;
             break;
         }
     }
 
-    // If sugar is higher than max matrix value, use the highest bracket coefficient
+    // If XE is higher than max matrix value, use the highest bracket coefficient
     if (!foundMatch && sortedMatrix.length > 0) {
         const highestRow = sortedMatrix[sortedMatrix.length - 1];
-        if (current_sugar > highestRow.max) {
+        if (total_xe > highestRow.max) {
              activeCoef = highestRow.coef;
         }
     }
