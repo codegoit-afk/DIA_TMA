@@ -2,10 +2,16 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Save, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, ShieldCheck, ChevronRight } from "lucide-react";
 import { CoefMatrixRow } from "@/types";
 import { useUser } from "@/components/providers/TelegramProvider";
 import axios from "axios";
+
+declare global {
+  interface Window {
+    Telegram?: any;
+  }
+}
 
 export default function SettingsPage() {
   const { t, user } = useUser();
@@ -14,6 +20,16 @@ export default function SettingsPage() {
   const [xeWeight, setXeWeight] = useState("12");
   const [isSaving, setIsSaving] = useState(false);
   
+  // CGM Settings
+  const [cgmType, setCgmType] = useState<'none' | 'nightscout'>('none');
+  const [nightscoutUrl, setNightscoutUrl] = useState("");
+  const [nightscoutToken, setNightscoutToken] = useState("");
+
+  // IOB / Basal Settings
+  const [insulinDia, setInsulinDia] = useState("4");
+
+  const [isAdmin, setIsAdmin] = useState(false);
+
   const [matrix, setMatrix] = useState<CoefMatrixRow[]>([
     { min: 1.0, max: 8.0, coef: 2.0 },
     { min: 8.1, max: 15.0, coef: 1.5 },
@@ -48,7 +64,17 @@ export default function SettingsPage() {
           if (profile.coef_matrix && profile.coef_matrix.length > 0) {
             setMatrix(profile.coef_matrix);
           }
+          if (profile.cgm_settings) {
+            setCgmType(profile.cgm_settings.type || 'none');
+            setNightscoutUrl(profile.cgm_settings.nightscout_url || "");
+            setNightscoutToken(profile.cgm_settings.nightscout_token || "");
+          }
+          if (profile.insulin_dia) setInsulinDia(profile.insulin_dia.toString());
         }
+        
+        // Check if user is admin
+        const adminRes = await axios.get(`/api/admin/check?telegram_id=${user.telegram_id}`);
+        if (adminRes.data.success && adminRes.data.isAdmin) setIsAdmin(true);
       } catch (e) {
         console.error("Failed to load profile", e);
       }
@@ -63,12 +89,22 @@ export default function SettingsPage() {
       const res = await axios.post('/api/profile', {
         telegram_id: user.telegram_id,
         hypo_threshold: parseFloat(hypoThreshold),
-        target_sugar: parseFloat(targetSugar),
+        target_sugar_ideal: parseFloat(targetSugar),
         xe_weight: parseInt(xeWeight),
-        coef_matrix: matrix
+        coef_matrix: matrix,
+        cgm_settings: {
+          type: cgmType,
+          nightscout_url: nightscoutUrl,
+          nightscout_token: nightscoutToken
+        },
+        insulin_dia: parseFloat(insulinDia)
       });
       if (res.data.success) {
-        alert("Настройки успешно сохранены!");
+        // Use custom snackbar instead of alert if possible, else standard alert for now
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+        alert(t.save_success || "Настройки успешно сохранены!");
       }
     } catch (e) {
       console.error(e);
@@ -94,34 +130,57 @@ export default function SettingsPage() {
 
       <div className="space-y-8 relative z-10">
         {/* Basic Settings */}
-        <section className="space-y-4 glass-panel p-6 rounded-3xl animate-fade-in-up">
-          <h2 className="text-lg font-semibold text-slate-200 border-b border-white/10 pb-3">{t.basic_settings}</h2>
+        <section className="space-y-4 bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl p-6 rounded-3xl animate-fade-in-up">
+          <h2 className="text-lg font-extrabold tracking-tight text-white border-b border-white/10 pb-3">{t.basic_settings}</h2>
           
           <div className="grid grid-cols-2 gap-5 pt-2">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-400 tracking-wide">{t.hypo_threshold}</label>
+              <label className="text-xs font-medium text-gray-500 tracking-wide">{t.hypo_threshold}</label>
               <input 
                 type="number" step="0.1" value={hypoThreshold} onChange={(e) => setHypoThreshold(e.target.value)}
-                className="w-full glass-input rounded-xl p-3 text-white focus:border-indigo-500/50 focus:bg-white/5 focus:outline-none transition-all"
+                className="w-full bg-black/20 rounded-xl p-3 text-white text-xl font-bold border border-white/10 focus:ring-2 focus:ring-emerald-500/50 focus:outline-none transition-all"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-400 tracking-wide">{t.target_sugar}</label>
+              <label className="text-xs font-medium text-gray-500 tracking-wide">{t.target_sugar}</label>
               <input 
                 type="number" step="0.1" value={targetSugar} onChange={(e) => setTargetSugar(e.target.value)}
-                className="w-full glass-input rounded-xl p-3 text-white focus:border-indigo-500/50 focus:bg-white/5 focus:outline-none transition-all"
+                className="w-full bg-black/20 rounded-xl p-3 text-white text-xl font-bold border border-white/10 focus:ring-2 focus:ring-emerald-500/50 focus:outline-none transition-all"
               />
             </div>
             <div className="space-y-1.5 col-span-2 pt-2">
-              <label className="text-xs font-medium text-slate-400 tracking-wide">{t.xe_weight_label}</label>
-              <div className="flex glass-input rounded-xl overflow-hidden p-1 shadow-inner">
+              <label className="text-xs font-medium text-gray-500 tracking-wide">{t.xe_weight_label}</label>
+              {/* iOS Style Segmented Control */}
+              <div className="flex bg-black/40 rounded-xl overflow-hidden p-1 shadow-inner border border-white/5">
                 {[10, 11, 12, 15].map(w => (
                   <button 
                     key={w}
-                    onClick={() => setXeWeight(w.toString())}
-                    className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-300 ${xeWeight === w.toString() ? 'bg-indigo-500/80 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                    onClick={() => {
+                        setXeWeight(w.toString());
+                        if (window.Telegram?.WebApp?.HapticFeedback) {
+                            window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+                        }
+                    }}
+                    className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-300 ${xeWeight === w.toString() ? 'bg-gradient-to-r from-emerald-400 to-cyan-500 text-gray-900 shadow-md' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
                   >
                     {w}г
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1.5 col-span-2 pt-3">
+              <label className="text-xs font-medium text-gray-500 tracking-wide">{t.insulin_dia_label || "Длительность действия инсулина (DIA, ч)"}</label>
+              <div className="flex bg-black/40 rounded-xl overflow-hidden p-1 shadow-inner border border-white/5">
+                {[3, 3.5, 4, 4.5, 5].map(d => (
+                  <button
+                    key={d}
+                    onClick={() => {
+                      setInsulinDia(d.toString());
+                      window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
+                    }}
+                    className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-300 ${insulinDia === d.toString() ? 'bg-gradient-to-r from-purple-400 to-indigo-500 text-white shadow-md' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                  >
+                    {d}ч
                   </button>
                 ))}
               </div>
@@ -129,40 +188,91 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* CGM Settings */}
+        <section className="space-y-4 bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl p-6 rounded-3xl animate-fade-in-up"  style={{ animationDelay: '100ms' }}>
+          <h2 className="text-lg font-extrabold tracking-tight text-white border-b border-white/10 pb-3">{t.cgm_integration || "Интеграция CGM (Мониторинг)"}</h2>
+          
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-gray-500 tracking-wide">{t.cgm_source || "Источник данных"}</label>
+              <select 
+                value={cgmType} 
+                onChange={(e) => setCgmType(e.target.value as any)}
+                className="w-full bg-black/20 rounded-xl p-3 text-white text-base font-bold border border-white/10 focus:ring-2 focus:ring-emerald-500/50 focus:outline-none appearance-none transition-all"
+              >
+                <option value="none" className="text-gray-900 bg-white">Отключено</option>
+                <option value="nightscout" className="text-gray-900 bg-white">Nightscout</option>
+              </select>
+            </div>
+
+            {cgmType === 'nightscout' && (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-gray-500 tracking-wide">Nightscout URL</label>
+                  <input 
+                    type="url" 
+                    placeholder="https://my-cgm.com"
+                    value={nightscoutUrl} 
+                    onChange={(e) => setNightscoutUrl(e.target.value)}
+                    className="w-full bg-black/20 rounded-xl p-3 text-white text-sm font-medium border border-white/10 focus:ring-2 focus:ring-emerald-500/50 focus:outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-gray-500 tracking-wide">{t.cgm_token || "Токен API (Опционально)"}</label>
+                  <input 
+                    type="password" 
+                    placeholder="Только если сайт закрыт"
+                    value={nightscoutToken} 
+                    onChange={(e) => setNightscoutToken(e.target.value)}
+                    className="w-full bg-black/20 rounded-xl p-3 text-white text-sm font-medium border border-white/10 focus:ring-2 focus:ring-emerald-500/50 focus:outline-none transition-all"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+
         {/* Matrix Settings */}
-        <section className="space-y-4 glass-panel p-6 rounded-3xl animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+        <section className="space-y-4 bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl p-6 rounded-3xl animate-fade-in-up" style={{ animationDelay: '200ms' }}>
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <h2 className="text-lg font-semibold text-slate-200">{t.matrix_settings}</h2>
-            <button onClick={handleAddRow} className="text-indigo-400 p-1 px-2 hover:bg-white/10 rounded-lg flex items-center gap-1.5 text-sm font-semibold transition-colors">
+            <h2 className="text-lg font-extrabold tracking-tight text-white">{t.matrix_settings}</h2>
+            <button 
+              onClick={() => {
+                  handleAddRow();
+                  if (window.Telegram?.WebApp?.HapticFeedback) {
+                      window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                  }
+              }} 
+              className="text-emerald-400 p-1 px-2 hover:bg-emerald-400/10 rounded-lg flex items-center gap-1.5 text-sm font-bold transition-colors">
               <Plus className="w-4 h-4" /> {t.add}
             </button>
           </div>
           
           <div className="space-y-3 pt-2">
-            <div className="flex text-xs font-semibold text-slate-500 tracking-wide px-1">
+            <div className="flex text-xs font-medium text-gray-500 tracking-wide px-1">
               <span className="flex-1">{t.xe_from}</span>
               <span className="flex-1 text-center">{t.xe_to}</span>
               <span className="w-20 text-right pr-6">{t.ins_per_xe}</span>
             </div>
 
             {matrix.map((row, idx) => (
-              <div key={idx} className="flex gap-2 items-center glass-input p-2.5 rounded-2xl group transition-all hover:border-indigo-500/30">
+              <div key={idx} className="flex gap-3 items-center p-1 group transition-all">
                 <input 
                   type="number" step="0.1" value={row.min} onChange={(e) => handleUpdateRow(idx, 'min', e.target.value)}
-                  className="w-full bg-transparent text-white text-center font-semibold focus:outline-none focus:bg-white/5 rounded-lg p-1.5 transition-colors"
+                  className="w-full bg-black/20 text-white text-center font-bold focus:ring-2 focus:ring-emerald-500/50 border border-white/10 rounded-xl p-2 transition-all"
                 />
-                <span className="text-indigo-300 font-bold opacity-60">-</span>
+                <span className="text-gray-600 font-bold opacity-80">→</span>
                 <input 
                   type="number" step="0.1" value={row.max} onChange={(e) => handleUpdateRow(idx, 'max', e.target.value)}
-                  className="w-full bg-transparent text-white text-center font-semibold focus:outline-none focus:bg-white/5 rounded-lg p-1.5 transition-colors"
+                  className="w-full bg-black/20 text-white text-center font-bold focus:ring-2 focus:ring-emerald-500/50 border border-white/10 rounded-xl p-2 transition-all"
                 />
-                <span className="text-indigo-300 font-bold opacity-60">={'>'}</span>
+                <span className="text-gray-600 font-bold opacity-80">=</span>
                 <input 
                   type="number" step="0.1" value={row.coef} onChange={(e) => handleUpdateRow(idx, 'coef', e.target.value)}
-                  className="w-16 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 text-indigo-300 text-center font-bold focus:outline-none focus:border-indigo-400/50 focus:bg-indigo-500/30 rounded-lg p-1.5 ml-auto transition-colors"
+                  className="w-20 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 text-emerald-300 text-center font-black focus:ring-2 focus:ring-emerald-400/50 focus:bg-emerald-500/30 rounded-xl p-2 ml-auto transition-all"
                 />
-                <button onClick={() => handleRemoveRow(idx)} className="text-slate-500 hover:text-red-400 p-1.5 ml-1 transition-colors rounded-lg hover:bg-red-500/10 opacity-0 group-hover:opacity-100">
-                  <Trash2 className="w-4 h-4" />
+                <button onClick={() => handleRemoveRow(idx)} className="text-gray-500 hover:text-red-400 p-2 ml-1 transition-colors rounded-xl hover:bg-red-500/10 opacity-0 group-hover:opacity-100">
+                  <Trash2 className="w-5 h-5" />
                 </button>
               </div>
             ))}
@@ -170,17 +280,38 @@ export default function SettingsPage() {
         </section>
 
         <button 
-          onClick={handleSave}
+          onClick={() => {
+              if (window.Telegram?.WebApp?.HapticFeedback) {
+                  window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
+              }
+              handleSave();
+          }}
           disabled={isSaving}
-          className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-medium p-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 mt-8 shadow-[0_8px_30px_rgb(16,185,129,0.3)] border border-white/10 active:scale-95 group relative overflow-hidden animate-fade-in-up disabled:opacity-50" style={{ animationDelay: '300ms' }}>
-          <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-          {isSaving ? (
-            <div className="w-5 h-5 rounded-full border-t-2 border-white animate-spin relative z-10" />
-          ) : (
-            <Save className="w-5 h-5 relative z-10" />
-          )}
-          <span className="relative z-10">{isSaving ? t.analyzing : t.save_settings}</span>
+          className="w-full bg-gradient-to-r from-emerald-400 to-cyan-500 hover:opacity-90 text-gray-900 p-4 rounded-3xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-2xl shadow-emerald-500/20 disabled:opacity-50 mt-10"
+        >
+          <Save className="w-6 h-6" />
+          {isSaving ? 'Сохранение...' : t.save}
         </button>
+
+        {isAdmin && (
+          <div className="mt-8 pt-8 border-t border-white/10">
+            <Link 
+              href="/admin"
+              className="w-full bg-white/5 border border-white/10 hover:bg-white/10 p-4 rounded-3xl font-bold flex items-center justify-between transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-500/10 rounded-xl group-hover:scale-110 transition-transform">
+                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div className="text-left">
+                    <div className="text-white">Панель администратора</div>
+                    <div className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">👑 Только для создателя</div>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-700 group-hover:text-emerald-400 transition-colors" />
+            </Link>
+          </div>
+        )}
       </div>
     </main>
   );

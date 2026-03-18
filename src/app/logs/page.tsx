@@ -9,6 +9,11 @@ import { useUser } from "@/components/providers/TelegramProvider";
 import { useEffect, useState } from "react";
 import axios from "axios";
 
+declare global {
+  interface Window {
+    Telegram?: any;
+  }
+}
 
 export default function LogsPage() {
   const { t, language, user } = useUser();
@@ -43,76 +48,105 @@ export default function LogsPage() {
   return (
     <main className="min-h-screen p-4 max-w-md mx-auto pb-24 relative overflow-hidden">
       {/* Background Decorative Blob */}
-      <div className="absolute top-20 left-0 -ml-20 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none" />
+      <div className="absolute top-20 left-0 -ml-20 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Header */}
-      <header className="flex items-center gap-4 mb-6 pt-4 relative z-10">
-        <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors text-slate-300 backdrop-blur-sm">
+      <header className="flex items-center gap-4 mb-8 pt-4 relative z-10 w-full">
+        <Link 
+            href="/" 
+            onClick={() => window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light')}
+            className="p-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-full text-gray-400 hover:text-white transition-all shadow-lg hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+        >
           <ArrowLeft className="w-6 h-6" />
         </Link>
-        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-400 tracking-tight">{t.logs_title}</h1>
+        <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 tracking-tight">{t.logs_title}</h1>
       </header>
 
-      <div className="space-y-4 relative z-10">
+      <div className="relative z-10">
         
         {loading ? (
-             <div className="flex justify-center items-center py-12">
-               <div className="w-8 h-8 rounded-full border-t-2 border-emerald-400 animate-spin" />
+             <div className="space-y-6 pl-8 relative">
+                {/* Skeleton Timeline Line */}
+                <div className="absolute left-3 top-2 bottom-0 w-[2px] bg-white/5" />
+                
+                {[1,2,3].map(i => (
+                    <div key={i} className="relative animate-pulse">
+                        <div className="absolute -left-[1.6rem] top-2 w-3 h-3 rounded-full bg-white/10" />
+                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 h-32" />
+                    </div>
+                ))}
              </div>
         ) : (
-          <>
-            {logs.map((log, idx) => (
-              <div key={log.id} className="glass-panel rounded-2xl p-5 space-y-4 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: `${idx * 100}ms` }}>
-                
-                {/* Top row: Time & Sugar */}
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2 text-slate-400 text-sm">
-                    <Clock className="w-4 h-4" />
-                    <span>{format(new Date(log.created_at), 'd MMM, HH:mm', { locale: getLocale() })}</span>
-                  </div>
-                  
-                  <div className={`px-2 py-1 rounded-md text-sm font-bold ${
-                    log.current_sugar > 7.8 ? 'bg-orange-500/20 text-orange-400' :
-                    log.current_sugar < 4.0 ? 'bg-red-500/20 text-red-400' :
-                    'bg-emerald-500/20 text-emerald-400'
-                  }`}>
-                    {log.current_sugar} ммоль
-                  </div>
-                </div>
+          <div className="space-y-6 relative pl-8">
+            {/* Timeline Vertical Line */}
+            {logs.length > 0 && <div className="absolute left-3 top-4 bottom-8 w-[2px] bg-white/5" />}
 
-                {/* Middle row: XE and Photo icon */}
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className="text-2xl font-bold text-white">{log.total_xe} ХЕ</span>
-                    <span className="text-xs text-slate-500">{t.carbs_label}</span>
-                  </div>
-                  <div className="bg-slate-800 p-2 rounded-xl text-slate-400">
-                    <Camera className="w-6 h-6" />
-                  </div>
-                </div>
+            {logs.map((log, idx) => {
+                const isHigh = log.current_sugar > 7.8;
+                const isLow = log.current_sugar < 4.0;
+                const statusColor = isHigh ? "bg-amber-500" : isLow ? "bg-red-500" : "bg-emerald-500";
+                const statusShadow = isHigh ? "shadow-[0_0_10px_rgba(245,158,11,0.5)]" : isLow ? "shadow-[0_0_10px_rgba(239,68,68,0.5)]" : "shadow-[0_0_10px_rgba(16,185,129,0.5)]";
 
-                {/* Bottom row: Insulin dose */}
-                <div className="pt-4 border-t border-white/10 flex justify-between items-center">
-                  <div className="flex items-center gap-2 text-indigo-400">
-                    <Syringe className="w-5 h-5" />
-                    <span className="font-semibold text-lg">{log.actual_dose} ед.</span>
-                  </div>
-                  {log.recommended_dose !== log.actual_dose && log.recommended_dose && (
-                     <span className="text-xs text-slate-500 tracking-wide">
-                       ({t.ai_suggested} {log.recommended_dose})
-                     </span>
-                  )}
-                </div>
+                return (
+                  <div key={log.id} className="relative animate-fade-in-up" style={{ animationDelay: `${idx * 100}ms` }}>
+                    
+                    {/* Timeline Dot */}
+                    <div className={`absolute -left-[1.65rem] top-6 w-3.5 h-3.5 rounded-full ${statusColor} ${statusShadow} border-2 border-[#030712] z-10`} />
+                    {/* Log Card */}
+                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 shadow-2xl relative overflow-hidden transition-all hover:bg-white/10 hover:border-white/20">
+                      
+                      {/* Top row: Time & Sugar Badge */}
+                      <div className="flex justify-between items-center mb-4">
+                        <div className="flex items-center gap-1.5 text-gray-400 text-xs font-bold tracking-widest uppercase">
+                          <Clock className="w-4 h-4 text-gray-500" />
+                          <span>{format(new Date(log.created_at), 'd MMM, HH:mm', { locale: getLocale() })}</span>
+                        </div>
+                        
+                        <div className={`px-2.5 py-1 rounded-lg text-xs font-black tracking-wide border ${
+                          isHigh ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
+                          isLow ? 'bg-red-500/10 text-red-400 border-red-500/30' :
+                          'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                        }`}>
+                          {log.current_sugar} ммоль
+                        </div>
+                      </div>
 
-              </div>
-            ))}
+                      {/* Middle row: XE and Badges */}
+                      <div className="flex items-end justify-between mb-4">
+                        <div className="flex flex-col">
+                          <div className="flex items-baseline gap-1.5">
+                              <span className="text-3xl font-black text-white leading-none">{log.total_xe}</span>
+                              <span className="text-sm font-bold text-gray-500">ХЕ</span>
+                          </div>
+                          <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mt-1">{t.carbs_label}</span>
+                        </div>
+                      </div>
+
+                      {/* Bottom row: Insulin dose Badge */}
+                      <div className="pt-4 border-t border-white/5 flex justify-between items-center">
+                        <div className="bg-cyan-500/10 border border-cyan-500/20 px-3 py-1.5 rounded-xl flex items-center gap-2 text-cyan-400 shadow-inner">
+                          <Syringe className="w-4 h-4" />
+                          <span className="font-extrabold text-sm tracking-wide">{log.actual_dose} ед.</span>
+                        </div>
+                        
+                        {log.recommended_dose !== log.actual_dose && log.recommended_dose && (
+                           <span className="text-[10px] uppercase tracking-widest font-bold text-gray-500 bg-black/20 px-2 py-1 rounded-md border border-white/5">
+                             {t.ai_suggested} {log.recommended_dose}
+                           </span>
+                        )}
+                      </div>
+
+                    </div>
+                  </div>
+                );
+            })}
 
             {logs.length === 0 && (
-              <div className="text-center py-12 text-slate-500 glass-panel rounded-2xl">
-                <p className="font-medium tracking-wide">{t.history_empty}</p>
+              <div className="text-center py-12 text-gray-500 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl">
+                <p className="font-bold tracking-widest uppercase text-sm">{t.history_empty}</p>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </main>

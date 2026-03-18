@@ -56,7 +56,38 @@ export const translations = {
     logs_title: "История логов",
     carbs_label: "Углеводы",
     ai_suggested: "ИИ советовал:",
-    history_empty: "История пуста"
+    history_empty: "История пуста",
+
+    // CGM
+    cgm_integration: "Интеграция CGM (Мониторинг)",
+    cgm_source: "Источник данных",
+    cgm_token: "Токен API (Опционально)",
+
+    // My Foods
+    my_foods_title: "Моя еда",
+    my_foods_count: "блюд сохранено",
+    my_foods_empty_title: "Список пуста",
+    my_foods_empty_desc: "Сохраняй свои стандартные блюда для быстрого добавления",
+    add_first_meal: "+ Добавить блюдо",
+    add_food_title: "Новое блюдо",
+    food_name_placeholder: "Название блюда",
+    food_xe_placeholder: "Колич. ХЕ (напр., 3.5)",
+    food_desc_placeholder: "Описание (необязательно)",
+    food_saved: "Блюдо сохранено!",
+    food_deleted: "Блюдо удалено",
+    food_nav: "Еда",
+    save_to_my_foods: "Сохранить блюдо",
+    correct_xe: "Уточнить ХЕ",
+    search_foods: "Поиск блюд...",
+    quick_log_desc: "Быстрый лог из Моей еды",
+    save: "Сохранить",
+
+    // IOB & Basal
+    iob_active: "Активный инсулин",
+    iob_note: "учтен в дозе",
+    insulin_dia_label: "Длительность действия инсулина (DIA, ч)",
+    analytics_title: "Аналитика",
+    analytics_nav: "Тренды"
   },
   ua: {
     app_title: "Калькулятор ХО",
@@ -113,7 +144,38 @@ export const translations = {
     logs_title: "Історія логів",
     carbs_label: "Вуглеводи",
     ai_suggested: "ШІ радив:",
-    history_empty: "Історія порожня"
+    history_empty: "Історія порожня",
+
+    // CGM
+    cgm_integration: "Інтеграція CGM (Моніторинг)",
+    cgm_source: "Джерело даних",
+    cgm_token: "Токен API (Опціонально)",
+
+    // My Foods
+    my_foods_title: "Моя їжа",
+    my_foods_count: "страв збережено",
+    my_foods_empty_title: "Список порожній",
+    my_foods_empty_desc: "Збережи свої стандартні страви для швидкого додавання",
+    add_first_meal: "+ Додати страву",
+    add_food_title: "Нова страва",
+    food_name_placeholder: "Назва страви",
+    food_xe_placeholder: "Кільк. ХО (напр., 3.5)",
+    food_desc_placeholder: "Опис (необов'язково)",
+    food_saved: "Страву збережено!",
+    food_deleted: "Страву видалено",
+    food_nav: "їжа",
+    save_to_my_foods: "Зберегти страву",
+    correct_xe: "Уточнити ХО",
+    search_foods: "Пошук страв...",
+    quick_log_desc: "Швидкий лог з Моєї їжі",
+    save: "Зберегти",
+
+    // IOB & Basal
+    iob_active: "Активний інсулін",
+    iob_note: "враховано в дозі",
+    insulin_dia_label: "Тривалість дії інсуліну (DIA, г)",
+    analytics_title: "Аналітика",
+    analytics_nav: "Тренди"
   },
   en: {
     app_title: "Carb Calculator",
@@ -170,6 +232,37 @@ export const translations = {
     logs_title: "Log History",
     carbs_label: "Carbs",
     ai_suggested: "AI Suggested:",
-    history_empty: "History is empty"
+    history_empty: "History is empty",
+
+    // CGM
+    cgm_integration: "CGM Integration (Monitoring)",
+    cgm_source: "Data Source",
+    cgm_token: "API Token (Optional)",
+
+    // My Foods
+    my_foods_title: "My Foods",
+    my_foods_count: "meals saved",
+    my_foods_empty_title: "No saved foods yet",
+    my_foods_empty_desc: "Save your standard meals for quick one-tap logging",
+    add_first_meal: "+ Add a meal",
+    add_food_title: "New meal",
+    food_name_placeholder: "Meal name (e.g. Oatmeal)",
+    food_xe_placeholder: "XE Amount (e.g. 3.5)",
+    food_desc_placeholder: "Description (optional)",
+    food_saved: "Meal saved!",
+    food_deleted: "Meal deleted",
+    food_nav: "Food",
+    save_to_my_foods: "Save meal",
+    correct_xe: "Adjust XE",
+    search_foods: "Search meals...",
+    quick_log_desc: "Quick Log from My Foods",
+    save: "Save",
+
+    // IOB & Basal
+    iob_active: "Active Insulin",
+    iob_note: "factored in dose",
+    insulin_dia_label: "Insulin Duration of Action (DIA, h)",
+    analytics_title: "Analytics",
+    analytics_nav: "Trends"
   }
 };

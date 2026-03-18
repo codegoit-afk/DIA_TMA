@@ -24,6 +24,11 @@ export type Profile = {
   isf: number;
   coef_matrix: CoefMatrixRow[];
   updated_at: string;
+  cgm_settings?: {
+    type: 'none' | 'nightscout';
+    nightscout_url?: string;
+    nightscout_token?: string;
+  };
 };
 
 export type FoodItemEstimation = {
