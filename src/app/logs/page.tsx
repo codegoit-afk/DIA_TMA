@@ -6,31 +6,31 @@ import { format } from "date-fns";
 import { ru, uk, enUS } from "date-fns/locale";
 import { FoodLog } from "@/types";
 import { useUser } from "@/components/providers/TelegramProvider";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
-// Mock data for UI
-const mockLogs: FoodLog[] = [
-  {
-    id: "1",
-    telegram_id: 123,
-    current_sugar: 6.5,
-    total_xe: 4.5,
-    recommended_dose: 6,
-    actual_dose: 6,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(), // 4h ago
-  },
-  {
-    id: "2",
-    telegram_id: 123,
-    current_sugar: 9.2,
-    total_xe: 3.0,
-    recommended_dose: 5.5,
-    actual_dose: 6,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-  }
-];
 
 export default function LogsPage() {
-  const { t, language } = useUser();
+  const { t, language, user } = useUser();
+  const [logs, setLogs] = useState<FoodLog[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchLogs() {
+      if (!user) return;
+      try {
+        const res = await axios.get(`/api/log?telegram_id=${user.telegram_id}`);
+        if (res.data.success) {
+          setLogs(res.data.data);
+        }
+      } catch (e) {
+        console.error("Failed to fetch logs", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchLogs();
+  }, [user]);
   
   const getLocale = () => {
     switch(language) {
@@ -54,56 +54,65 @@ export default function LogsPage() {
       </header>
 
       <div className="space-y-4 relative z-10">
-        {mockLogs.map((log, idx) => (
-          <div key={log.id} className="glass-panel rounded-2xl p-5 space-y-4 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: `${idx * 150}ms` }}>
-            
-            {/* Top row: Time & Sugar */}
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2 text-slate-400 text-sm">
-                <Clock className="w-4 h-4" />
-                <span>{format(new Date(log.created_at), 'd MMM, HH:mm', { locale: getLocale() })}</span>
-              </div>
-              
-              <div className={`px-2 py-1 rounded-md text-sm font-bold ${
-                log.current_sugar > 7.8 ? 'bg-orange-500/20 text-orange-400' :
-                log.current_sugar < 4.0 ? 'bg-red-500/20 text-red-400' :
-                'bg-emerald-500/20 text-emerald-400'
-              }`}>
-                {log.current_sugar} ммоль
-              </div>
-            </div>
+        
+        {loading ? (
+             <div className="flex justify-center items-center py-12">
+               <div className="w-8 h-8 rounded-full border-t-2 border-emerald-400 animate-spin" />
+             </div>
+        ) : (
+          <>
+            {logs.map((log, idx) => (
+              <div key={log.id} className="glass-panel rounded-2xl p-5 space-y-4 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: `${idx * 100}ms` }}>
+                
+                {/* Top row: Time & Sugar */}
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2 text-slate-400 text-sm">
+                    <Clock className="w-4 h-4" />
+                    <span>{format(new Date(log.created_at), 'd MMM, HH:mm', { locale: getLocale() })}</span>
+                  </div>
+                  
+                  <div className={`px-2 py-1 rounded-md text-sm font-bold ${
+                    log.current_sugar > 7.8 ? 'bg-orange-500/20 text-orange-400' :
+                    log.current_sugar < 4.0 ? 'bg-red-500/20 text-red-400' :
+                    'bg-emerald-500/20 text-emerald-400'
+                  }`}>
+                    {log.current_sugar} ммоль
+                  </div>
+                </div>
 
-            {/* Middle row: XE and Photo icon */}
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <span className="text-2xl font-bold text-white">{log.total_xe} ХЕ</span>
-                <span className="text-xs text-slate-500">{t.carbs_label}</span>
-              </div>
-              <div className="bg-slate-800 p-2 rounded-xl text-slate-400">
-                <Camera className="w-6 h-6" />
-              </div>
-            </div>
+                {/* Middle row: XE and Photo icon */}
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-2xl font-bold text-white">{log.total_xe} ХЕ</span>
+                    <span className="text-xs text-slate-500">{t.carbs_label}</span>
+                  </div>
+                  <div className="bg-slate-800 p-2 rounded-xl text-slate-400">
+                    <Camera className="w-6 h-6" />
+                  </div>
+                </div>
 
-            {/* Bottom row: Insulin dose */}
-            <div className="pt-4 border-t border-white/10 flex justify-between items-center">
-              <div className="flex items-center gap-2 text-indigo-400">
-                <Syringe className="w-5 h-5" />
-                <span className="font-semibold text-lg">{log.actual_dose} ед.</span>
+                {/* Bottom row: Insulin dose */}
+                <div className="pt-4 border-t border-white/10 flex justify-between items-center">
+                  <div className="flex items-center gap-2 text-indigo-400">
+                    <Syringe className="w-5 h-5" />
+                    <span className="font-semibold text-lg">{log.actual_dose} ед.</span>
+                  </div>
+                  {log.recommended_dose !== log.actual_dose && log.recommended_dose && (
+                     <span className="text-xs text-slate-500 tracking-wide">
+                       ({t.ai_suggested} {log.recommended_dose})
+                     </span>
+                  )}
+                </div>
+
               </div>
-              {log.recommended_dose !== log.actual_dose && log.recommended_dose && (
-                 <span className="text-xs text-slate-500 tracking-wide">
-                   ({t.ai_suggested} {log.recommended_dose})
-                 </span>
-              )}
-            </div>
+            ))}
 
-          </div>
-        ))}
-
-        {mockLogs.length === 0 && (
-          <div className="text-center py-12 text-slate-500">
-            <p>{t.history_empty}</p>
-          </div>
+            {logs.length === 0 && (
+              <div className="text-center py-12 text-slate-500 glass-panel rounded-2xl">
+                <p className="font-medium tracking-wide">{t.history_empty}</p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </main>

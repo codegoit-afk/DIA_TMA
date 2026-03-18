@@ -45,3 +45,32 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Непредвиденная ошибка" }, { status: 500 });
   }
 }
+
+export async function GET(req: Request) {
+    try {
+        const { searchParams } = new URL(req.url);
+        const telegram_id = searchParams.get('telegram_id');
+
+        if (!telegram_id) {
+            return NextResponse.json({ error: "Missing telegram_id" }, { status: 400 });
+        }
+
+        const { data, error } = await supabaseAdmin
+            .from('food_logs')
+            .select('*')
+            .eq('telegram_id', telegram_id)
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        if (error) {
+            console.error("Logs fetch error:", error);
+            return NextResponse.json({ error: "Ошибка при загрузке логов" }, { status: 500 });
+        }
+
+        return NextResponse.json({ success: true, data });
+
+    } catch (error: any) {
+        console.error("Log Fetch Error:", error.message);
+        return NextResponse.json({ error: "Непредвиденная ошибка" }, { status: 500 });
+    }
+}

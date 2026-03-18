@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save, Plus, Trash2 } from "lucide-react";
 import { CoefMatrixRow } from "@/types";
 import { useUser } from "@/components/providers/TelegramProvider";
+import axios from "axios";
 
 export default function SettingsPage() {
-  const { t } = useUser();
+  const { t, user } = useUser();
   const [hypoThreshold, setHypoThreshold] = useState("3.9");
   const [targetSugar, setTargetSugar] = useState("5.5");
   const [xeWeight, setXeWeight] = useState("12");
+  const [isSaving, setIsSaving] = useState(false);
   
   const [matrix, setMatrix] = useState<CoefMatrixRow[]>([
     { min: 4.0, max: 7.0, coef: 1.0 },
@@ -30,6 +32,49 @@ export default function SettingsPage() {
 
   const handleRemoveRow = (index: number) => {
     setMatrix(matrix.filter((_, i) => i !== index));
+  };
+
+  useEffect(() => {
+    async function loadProfile() {
+      if (!user) return;
+      try {
+        const res = await axios.get(`/api/profile?telegram_id=${user.telegram_id}`);
+        if (res.data.success && res.data.data) {
+          const profile = res.data.data;
+          if (profile.hypo_threshold) setHypoThreshold(profile.hypo_threshold.toString());
+          if (profile.target_sugar) setTargetSugar(profile.target_sugar.toString());
+          if (profile.xe_weight) setXeWeight(profile.xe_weight.toString());
+          if (profile.coef_matrix && profile.coef_matrix.length > 0) {
+            setMatrix(profile.coef_matrix);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load profile", e);
+      }
+    }
+    loadProfile();
+  }, [user]);
+
+  const handleSave = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      const res = await axios.post('/api/profile', {
+        telegram_id: user.telegram_id,
+        hypo_threshold: parseFloat(hypoThreshold),
+        target_sugar: parseFloat(targetSugar),
+        xe_weight: parseInt(xeWeight),
+        coef_matrix: matrix
+      });
+      if (res.data.success) {
+        alert("Настройки успешно сохранены!");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Ошибка при сохранении настроек.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -123,10 +168,17 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <button className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-medium p-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 mt-8 shadow-[0_8px_30px_rgb(16,185,129,0.3)] border border-white/10 active:scale-95 group relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+        <button 
+          onClick={handleSave}
+          disabled={isSaving}
+          className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-medium p-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 mt-8 shadow-[0_8px_30px_rgb(16,185,129,0.3)] border border-white/10 active:scale-95 group relative overflow-hidden animate-fade-in-up disabled:opacity-50" style={{ animationDelay: '300ms' }}>
           <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-          <Save className="w-5 h-5 relative z-10" />
-          <span className="relative z-10">{t.save_settings}</span>
+          {isSaving ? (
+            <div className="w-5 h-5 rounded-full border-t-2 border-white animate-spin relative z-10" />
+          ) : (
+            <Save className="w-5 h-5 relative z-10" />
+          )}
+          <span className="relative z-10">{isSaving ? t.analyzing : t.save_settings}</span>
         </button>
       </div>
     </main>

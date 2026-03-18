@@ -81,9 +81,19 @@ export default function Home() {
     setSugarError(null);
 
     try {
+      let userXeWeight = 12;
+      try {
+         const profileRes = await axios.get(`/api/profile?telegram_id=${activeUser.telegram_id}`);
+         if (profileRes.data.success && profileRes.data.data && profileRes.data.data.xe_weight) {
+             userXeWeight = profileRes.data.data.xe_weight;
+         }
+      } catch (e) {
+         console.warn("Failed to fetch xe_weight, using default", e);
+      }
+
       const aiResponse = await axios.post('/api/analyze', { 
           imageBase64Array: base64Images,
-          xeWeight: 12, // TODO: Fetch from profile
+          xeWeight: userXeWeight,
           clarification: foodText
       });
 
