@@ -25,13 +25,12 @@ export default function Home() {
 }
 
 function HomeContent() {
-  const { user, calculatorState, setCalculatorState, t, language, setLanguage } = useUser();
+  const { user, calculatorState, setCalculatorState, t, language, setLanguage, showSplash } = useUser();
   const { sugar, previewUrls, base64Images, result, aiData } = calculatorState;
 
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
   const [sugarError, setSugarError] = useState<string | null>(null);
   const [foodText, setFoodText] = useState<string>(""); 
-  const [showSplash, setShowSplash] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // CGM State
@@ -54,10 +53,12 @@ function HomeContent() {
   }, [toastMessage]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 2500); 
-    return () => clearTimeout(timer);
+    // Hide BackButton on Home
+    // @ts-ignore
+    const WebApp = window.Telegram?.WebApp;
+    if (WebApp) {
+      WebApp.BackButton.hide();
+    }
   }, []);
 
   useEffect(() => {

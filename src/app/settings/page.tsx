@@ -82,6 +82,15 @@ export default function SettingsPage() {
     loadProfile();
   }, [user]);
 
+  useEffect(() => {
+    // Show BackButton on subpages
+    // @ts-ignore
+    const WebApp = window.Telegram?.WebApp;
+    if (WebApp) {
+      WebApp.BackButton.show();
+    }
+  }, []);
+
   const handleSave = async () => {
     if (!user) return;
     setIsSaving(true);

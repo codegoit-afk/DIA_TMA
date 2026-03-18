@@ -12,6 +12,8 @@ type TelegramContextType = {
     language: Language;
     setLanguage: React.Dispatch<React.SetStateAction<Language>>;
     t: typeof translations.ru;
+    showSplash: boolean;
+    setShowSplash: (val: boolean) => void;
 };
 
 const defaultCalcState: CalculatorState = {
@@ -28,7 +30,9 @@ const TelegramContext = createContext<TelegramContextType>({
     setCalculatorState: () => {},
     language: 'ru',
     setLanguage: () => {},
-    t: translations.ru
+    t: translations.ru,
+    showSplash: true,
+    setShowSplash: () => {}
 });
 
 export const useUser = () => useContext(TelegramContext);
@@ -37,6 +41,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [calculatorState, setCalculatorState] = useState<CalculatorState>(defaultCalcState);
   const [language, setLanguage] = useState<Language>('ru');
+  const [showSplash, setShowSplash] = useState(true);
 
   const t = translations[language];
 
@@ -98,8 +103,33 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
     initTelegram();
   }, []);
 
+  useEffect(() => {
+    // Show splash only once
+    if (showSplash) {
+        const timer = setTimeout(() => setShowSplash(false), 2500);
+        return () => clearTimeout(timer);
+    }
+  }, [showSplash]);
+
+  useEffect(() => {
+    // Handle Telegram BackButton
+    // @ts-ignore
+    const WebApp = window.Telegram?.WebApp;
+    if (!WebApp) return;
+
+    const handleBack = () => {
+        window.history.back();
+    };
+
+    WebApp.BackButton.onClick(handleBack);
+    
+    return () => {
+        WebApp.BackButton.offClick(handleBack);
+    };
+  }, []);
+
   return (
-      <TelegramContext.Provider value={{ user, calculatorState, setCalculatorState, language, setLanguage, t }}>
+      <TelegramContext.Provider value={{ user, calculatorState, setCalculatorState, language, setLanguage, t, showSplash, setShowSplash }}>
           {children}
       </TelegramContext.Provider>
   );

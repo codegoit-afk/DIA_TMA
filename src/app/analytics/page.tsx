@@ -129,6 +129,15 @@ export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  useEffect(() => {
+    // Show BackButton on Analytics
+    // @ts-ignore
+    const WebApp = window.Telegram?.WebApp;
+    if (WebApp) {
+      WebApp.BackButton.show();
+    }
+  }, []);
+
   const load = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);

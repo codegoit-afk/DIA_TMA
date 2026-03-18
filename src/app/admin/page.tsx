@@ -42,6 +42,15 @@ export default function AdminPage() {
   const [selectedUserLogs, setSelectedUserLogs] = useState<UserLog[]>([]);
   const [viewingUser, setViewingUser] = useState<UserProfile | null>(null);
 
+  useEffect(() => {
+    // Show BackButton on Admin
+    // @ts-ignore
+    const WebApp = window.Telegram?.WebApp;
+    if (WebApp) {
+      WebApp.BackButton.show();
+    }
+  }, []);
+
   const checkAuthAndLoad = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);

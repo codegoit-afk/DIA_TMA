@@ -30,6 +30,16 @@ export default function MyFoodsPage() {
   const [newXe, setNewXe] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+
+  useEffect(() => {
+    // Show BackButton on My Foods
+    // @ts-ignore
+    const WebApp = window.Telegram?.WebApp;
+    if (WebApp) {
+      WebApp.BackButton.show();
+    }
+  }, []);
+
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
