@@ -13,9 +13,9 @@ export async function GET(req: Request) {
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Total users
+        // Total users from "users" table
         const { count: totalUsers } = await supabaseAdmin
-            .from('profiles')
+            .from('users')
             .select('*', { count: 'exact', head: true });
 
         // Logs in the last 24 hours
