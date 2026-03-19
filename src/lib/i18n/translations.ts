@@ -108,7 +108,12 @@ export const translations = {
     no_data: "Нет данных",
     no_data_desc: "Начни использовать калькулятор, чтобы здесь появились твои тренды",
     days_7: "7 дней",
-    days_30: "30 дней"
+    days_30: "30 дней",
+
+    // Support & Guide
+    contact_devs: "Связаться с разработчиками",
+    cgm_how_to: "Как подключить?",
+    cgm_instruction: "Для подключения Nightscout введите URL вашего сервера (например, https://my-cgm.herokuapp.com) и API токен доступа (из секретов Nightscout)."
   },
   ua: {
     app_title: "Калькулятор ХО",
@@ -217,7 +222,12 @@ export const translations = {
     no_data: "Немає даних",
     no_data_desc: "Почни використовувати калькулятор, щоб тут з'явилися твої тренди",
     days_7: "7 днів",
-    days_30: "30 днів"
+    days_30: "30 днів",
+
+    // Support & Guide
+    contact_devs: "Зв'язатись з розробниками",
+    cgm_how_to: "Як підключити?",
+    cgm_instruction: "Для підключення Nightscout введіть URL вашого сервера (наприклад, https://my-cgm.herokuapp.com) та API токен доступу (з секретів Nightscout)."
   },
   en: {
     app_title: "Carb Calculator",
@@ -326,6 +336,11 @@ export const translations = {
     no_data: "No data",
     no_data_desc: "Start using the calculator to see your trends here",
     days_7: "7 days",
-    days_30: "30 days"
+    days_30: "30 days",
+
+    // Support & Guide
+    contact_devs: "Contact Developers",
+    cgm_how_to: "How to connect?",
+    cgm_instruction: "To connect Nightscout, enter your server URL (e.g., https://my-cgm.herokuapp.com) and your API Access Token (from Nightscout secrets)."
   }
 };

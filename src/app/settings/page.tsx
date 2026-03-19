@@ -315,9 +315,17 @@ export default function SettingsPage() {
                     >
                       <option value="none">Отключено / Disabled</option>
                       <option value="nightscout">Nightscout</option>
-                    </select>
-                 </div>
-              </div>
+                     </select>
+                  </div>
+                  {cgmType === 'nightscout' && (
+                    <div className="mx-1 mt-2 p-3 rounded-2xl bg-blue-50/50 border border-blue-100/50">
+                       <p className="text-[10px] leading-relaxed text-blue-600 font-medium">
+                         <span className="font-black uppercase mr-1">{t.cgm_how_to}</span>
+                         {t.cgm_instruction}
+                       </p>
+                    </div>
+                  )}
+               </div>
 
               {cgmType === 'nightscout' && (
                 <div className="space-y-4 animate-fade-in-up">
@@ -347,6 +355,28 @@ export default function SettingsPage() {
                 </div>
               )}
            </div>
+        </section>
+
+        {/* Support Section */}
+        <section className="animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+           <a 
+             href="https://t.me/dia_ai_support" 
+             target="_blank"
+             onClick={() => window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium')}
+             className="flex items-center justify-between nm-outset nm-active p-5 rounded-[2rem] bg-white group transition-all"
+           >
+              <div className="flex items-center gap-4">
+                 <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <div className="w-5 h-5 text-indigo-500">
+                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                       </svg>
+                    </div>
+                 </div>
+                 <span className="text-xs font-black text-[#111827] uppercase tracking-wider">{t.contact_devs}</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-400" />
+           </a>
         </section>
 
         {/* Save Button */}
