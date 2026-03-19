@@ -327,9 +327,26 @@ function HomeContent() {
     <main className="min-h-screen p-4 max-w-[375px] mx-auto relative pb-36 overflow-x-hidden">
       {/* Global Splash Screen Overlay */}
       {showSplash && (
-        <div className="fixed inset-0 bg-[#F8F4F0] z-[100] flex flex-col items-center justify-center pointer-events-none transition-opacity duration-1000 opacity-100">
-           <img src="/welcome.gif" alt="Welcome" className="w-40 h-40 object-contain" />
-           <h1 className="text-3xl font-black text-[#111827] tracking-tight text-center">
+        <div className="fixed inset-0 bg-[#F8F4F0] z-[100] flex flex-col items-center justify-center pointer-events-none transition-opacity duration-1000 opacity-100 overflow-hidden">
+           <style>{`
+             @keyframes splashScale {
+               0% { transform: scale(0.6); opacity: 0; filter: blur(20px); }
+               50% { transform: scale(1.1); opacity: 1; filter: blur(0px); }
+               100% { transform: scale(1); opacity: 1; filter: blur(0px); }
+             }
+             .animate-premium-splash {
+               animation: splashScale 1.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+             }
+           `}</style>
+           <div className="relative">
+              <img 
+                src="/logo.png" 
+                alt="Logo" 
+                className="w-40 h-40 object-contain animate-premium-splash" 
+              />
+              <div className="absolute inset-0 bg-emerald-500/20 blur-3xl rounded-full scale-150 -z-10 animate-pulse opacity-30" />
+           </div>
+           <h1 className="text-3xl font-black text-[#111827] tracking-tighter text-center mt-4 animate-fade-in-up delay-700">
               DIA <span className="font-thin text-emerald-500">AI</span>
            </h1>
         </div>

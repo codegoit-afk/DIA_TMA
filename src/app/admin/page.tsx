@@ -34,6 +34,7 @@ type UserLog = {
 
 export default function AdminPage() {
   const { user, t } = useUser();
+  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'broadcast'>('stats');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [search, setSearch] = useState("");
@@ -41,6 +42,13 @@ export default function AdminPage() {
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [selectedUserLogs, setSelectedUserLogs] = useState<UserLog[]>([]);
   const [viewingUser, setViewingUser] = useState<UserProfile | null>(null);
+
+  // Broadcast state
+  const [bcMessage, setBcMessage] = useState("");
+  const [bcBtnText, setBcBtnText] = useState("");
+  const [bcBtnUrl, setBcBtnUrl] = useState("");
+  const [bcLoading, setBcLoading] = useState(false);
+  const [bcResult, setBcResult] = useState<any>(null);
 
   useEffect(() => {
     // Show BackButton on Admin
@@ -55,7 +63,6 @@ export default function AdminPage() {
     if (!user) return;
     setIsLoading(true);
     try {
-      // First, check stats to see if we're authorized
       const statsRes = await axios.get(`/api/admin/stats?telegram_id=${user.telegram_id}`);
       if (statsRes.data.success) {
         setIsAuthorized(true);
@@ -85,6 +92,30 @@ export default function AdminPage() {
     } catch (e) { console.error("Logs error", e); }
   };
 
+  const handleBroadcast = async () => {
+    if (!user || !bcMessage) return;
+    setBcLoading(true);
+    setBcResult(null);
+    try {
+      const res = await axios.post('/api/admin/broadcast', {
+        telegram_id: user.telegram_id,
+        message: bcMessage,
+        button_text: bcBtnText,
+        button_url: bcBtnUrl
+      });
+      setBcResult(res.data.data);
+      if (res.data.success) {
+         setBcMessage("");
+         setBcBtnText("");
+         setBcBtnUrl("");
+      }
+    } catch (e: any) {
+      alert("Broadcast failed: " + (e.response?.data?.error || e.message));
+    } finally {
+      setBcLoading(false);
+    }
+  };
+
   const filteredUsers = users.filter(u => 
     u.username?.toLowerCase().includes(search.toLowerCase()) || 
     u.first_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -111,18 +142,42 @@ export default function AdminPage() {
       <div className="absolute bottom-40 -right-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
 
       {/* Header */}
-      <header className="flex items-center gap-4 mb-8 pt-4 relative z-10">
-        <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors text-slate-300">
-          <ArrowLeft className="w-6 h-6" />
-        </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-indigo-400 tracking-tight">
-              Панель управления
-            </h1>
-            <ShieldCheck className="w-5 h-5 text-emerald-400" />
+      <header className="mb-6 pt-4 relative z-10">
+        <div className="flex items-center gap-4 mb-6">
+          <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors text-slate-300">
+            <ArrowLeft className="w-6 h-6" />
+          </Link>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-indigo-400 tracking-tight">
+                Admin Center
+              </h1>
+              <ShieldCheck className="w-5 h-5 text-emerald-400" />
+            </div>
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-0.5">Control Tower</p>
           </div>
-          <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-0.5">Администратор</p>
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="flex p-1 bg-white/5 border border-white/10 rounded-2xl">
+          {[
+            { id: 'stats', label: 'Stats', icon: BarChart3 },
+            { id: 'users', label: 'Users', icon: Users },
+            { id: 'broadcast', label: 'Blast', icon: Activity }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black transition-all ${
+                activeTab === tab.id 
+                  ? 'bg-white/10 text-white shadow-lg' 
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <tab.icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </button>
+          ))}
         </div>
       </header>
 
@@ -134,84 +189,134 @@ export default function AdminPage() {
           <div className="h-64 bg-white/5 rounded-3xl" />
         </div>
       ) : (
-        <div className="space-y-6 z-10 relative">
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: 'Всего пользователей', value: stats?.total_users, icon: Users, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-              { label: 'Запросы за 24 ч', value: stats?.logs_24h, icon: BarChart3, color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/20' },
-              { label: 'Активны за неделю', value: stats?.active_7d, icon: Activity, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20' },
-              { label: 'Уведомлений ушло', value: stats?.reminders_sent, icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
-            ].map((s, i) => (
-              <div key={i} className={`p-4 rounded-3xl border ${s.bg} flex flex-col justify-between h-28`}>
-                <s.icon className={`w-5 h-5 ${s.color}`} />
-                <div>
-                  <div className="text-2xl font-black text-white">{s.value}</div>
-                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{s.label}</div>
+        <div className="z-10 relative">
+          
+          {activeTab === 'stats' && (
+            <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-bottom-2">
+              {[
+                { label: 'Total Users', value: stats?.total_users, icon: Users, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+                { label: 'Reqs 24h', value: stats?.logs_24h, icon: BarChart3, color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/20' },
+                { label: 'Active 7d', value: stats?.active_7d, icon: Activity, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20' },
+                { label: 'Reminders', value: stats?.reminders_sent, icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
+              ].map((s, i) => (
+                <div key={i} className={`p-4 rounded-3xl border ${s.bg} flex flex-col justify-between h-28`}>
+                  <s.icon className={`w-5 h-5 ${s.color}`} />
+                  <div>
+                    <div className="text-2xl font-black text-white">{s.value}</div>
+                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{s.label}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
-          {/* User List */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-bold text-white tracking-tight">Пользователи</h2>
-              <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
-                <Search className="w-3.5 h-3.5 text-gray-500" />
+          {activeTab === 'users' && (
+            <section className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+              <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-3 rounded-2xl">
+                <Search className="w-4 h-4 text-gray-500" />
                 <input 
                   type="text" 
-                  placeholder="Поиск..." 
+                  placeholder="Search by name, @username or ID..." 
                   value={search} 
                   onChange={(e) => setSearch(e.target.value)}
-                  className="bg-transparent border-none text-xs text-white placeholder-gray-600 focus:outline-none w-24"
+                  className="bg-transparent border-none text-sm text-white placeholder-gray-600 focus:outline-none w-full font-bold"
                 />
               </div>
-            </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden divide-y divide-white/10">
-              {filteredUsers.length === 0 ? (
-                <div className="p-10 text-center text-gray-500 text-sm">Пользователи не найдены</div>
-              ) : (
-                filteredUsers.map(u => (
-                  <button 
-                    key={u.telegram_id}
-                    onClick={() => loadUserLogs(u)}
-                    className="w-full p-4 flex items-center justify-between hover:bg-white/[0.03] transition-colors active:bg-white/[0.08]"
-                  >
-                    <div className="flex flex-col items-start gap-1">
-                      <span className="font-bold text-white text-sm">
-                        {u.first_name || 'User'} {u.username && <span className="text-gray-500 font-medium"> @{u.username}</span>}
-                      </span>
-                      <div className="flex items-center gap-3 text-[10px] font-bold text-gray-600 uppercase">
-                        <span>L: {u.total_logs}</span>
-                        <span>ID: {u.telegram_id}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-right mr-2">
-                        <div className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Last Active</div>
-                        <div className="text-[10px] text-emerald-400 font-black">
-                          {u.last_active ? new Date(u.last_active).toLocaleDateString('ru-RU') : 'Never'}
+              <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden divide-y divide-white/10">
+                {filteredUsers.length === 0 ? (
+                  <div className="p-10 text-center text-gray-500 text-sm">No users found</div>
+                ) : (
+                  filteredUsers.map(u => (
+                    <button 
+                      key={u.telegram_id}
+                      onClick={() => loadUserLogs(u)}
+                      className="w-full p-4 flex items-center justify-between hover:bg-white/[0.03] transition-colors active:bg-white/[0.08]"
+                    >
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="font-bold text-white text-sm">
+                          {u.first_name || 'User'} {u.username && <span className="text-gray-500 font-medium text-xs ml-1">@{u.username}</span>}
+                        </span>
+                        <div className="flex items-center gap-3 text-[10px] font-bold text-gray-600 uppercase tracking-widest">
+                          <span>LOGS: {u.total_logs}</span>
+                          <span>ID: {u.telegram_id}</span>
                         </div>
                       </div>
                       <ChevronRight className="w-4 h-4 text-gray-700" />
+                    </button>
+                  ))
+                )}
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'broadcast' && (
+            <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+               <div className="bg-white/5 border border-white/10 p-6 rounded-[2.5rem] space-y-4">
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Message Content (HTML Supported)</label>
+                     <textarea 
+                        value={bcMessage}
+                        onChange={(e) => setBcMessage(e.target.value)}
+                        placeholder="Hello users! Check out this new feature..."
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-emerald-500/50 min-h-[120px] font-medium"
+                     />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Button Text</label>
+                        <input 
+                            type="text"
+                            value={bcBtnText}
+                            onChange={(e) => setBcBtnText(e.target.value)}
+                            placeholder="Open App"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none"
+                        />
                     </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Button URL</label>
+                        <input 
+                            type="text"
+                            value={bcBtnUrl}
+                            onChange={(e) => setBcBtnUrl(e.target.value)}
+                            placeholder="https://..."
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none"
+                        />
+                    </div>
+                  </div>
+
+                  <button 
+                    disabled={bcLoading || !bcMessage}
+                    onClick={handleBroadcast}
+                    className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${
+                        bcLoading ? 'bg-gray-800 text-gray-500' : 'bg-emerald-500 text-black active:scale-95 shadow-lg shadow-emerald-500/20'
+                    }`}
+                  >
+                    {bcLoading ? 'Blasting...' : 'Send Broadcast'}
+                    {!bcLoading && <Activity className="w-4 h-4" />}
                   </button>
-                ))
-              )}
-            </div>
-          </section>
+
+                  {bcResult && (
+                    <div className="p-4 bg-white/5 border border-white/10 rounded-2xl text-xs space-y-1">
+                        <p className="text-emerald-400 font-bold">Successfully sent to {bcResult.success} users</p>
+                        {bcResult.failed > 0 && <p className="text-rose-400 font-bold">Failed: {bcResult.failed}</p>}
+                    </div>
+                  )}
+               </div>
+            </section>
+          )}
+
         </div>
       )}
 
-      {/* User Detail Modal (simplistic overlay for speed) */}
+      {/* User Detail Modal */}
       {viewingUser && (
         <div className="fixed inset-0 z-50 bg-[#030712]/95 backdrop-blur-md animate-in fade-in flex flex-col transform transition-transform">
           <header className="p-6 border-b border-white/10 flex items-center justify-between">
             <div>
               <h3 className="text-xl font-black text-white">{viewingUser.first_name || viewingUser.username}</h3>
-              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Последние 50 записей</p>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Profile View</p>
             </div>
             <button 
               onClick={() => setViewingUser(null)}
@@ -221,6 +326,20 @@ export default function AdminPage() {
             </button>
           </header>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
+             <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
+                    <div className="text-[10px] text-gray-500 font-black uppercase mb-1">Total Logs</div>
+                    <div className="text-xl font-black text-white">{viewingUser.total_logs}</div>
+                </div>
+                <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
+                    <div className="text-[10px] text-gray-500 font-black uppercase mb-1">Last Active</div>
+                    <div className="text-sm font-black text-emerald-400">
+                        {viewingUser.last_active ? new Date(viewingUser.last_active).toLocaleString('ru-RU') : 'Never'}
+                    </div>
+                </div>
+             </div>
+            
+            <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-2">Recent Activity</h4>
             {selectedUserLogs.map(log => (
               <div key={log.id} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex items-center justify-between">
                 <div>
@@ -228,16 +347,16 @@ export default function AdminPage() {
                     {new Date(log.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="text-lg font-black text-white">{log.current_sugar} <span className="text-[10px] font-bold text-cyan-400 uppercase">Sugar</span></div>
+                    <div className="text-lg font-black text-white">{log.current_sugar} <span className="text-[10px] font-bold text-cyan-400 uppercase">S</span></div>
                     <div className="text-lg font-black text-white">{log.total_xe} <span className="text-[10px] font-bold text-amber-400 uppercase">XE</span></div>
                   </div>
                 </div>
                 <div className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl">
-                  <span className="text-lg font-black text-emerald-400">{log.actual_dose} <span className="text-[8px] uppercase">Unit</span></span>
+                  <span className="text-lg font-black text-emerald-400">{log.actual_dose} <span className="text-[8px] uppercase">U</span></span>
                 </div>
               </div>
             ))}
-            {selectedUserLogs.length === 0 && <div className="text-center text-gray-600 py-10">Записей не найдено</div>}
+            {selectedUserLogs.length === 0 && <div className="text-center text-gray-600 py-10">No logs for this user</div>}
           </div>
         </div>
       )}
