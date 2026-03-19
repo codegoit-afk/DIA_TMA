@@ -127,6 +127,40 @@ function HomeContent() {
     }
   };
 
+  // Resize and compress image for mobile stability (Vercel payload limits)
+  const resizeImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1024;
+        const MAX_HEIGHT = 1024;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        // Compress as JPEG 0.7
+        resolve(canvas.toDataURL('image/jpeg', 0.7).split(',')[1]);
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) {
@@ -134,26 +168,18 @@ function HomeContent() {
       return;
     }
     
-    const tempUrls = files.map(f => URL.createObjectURL(f));
-    setCalculatorState(prev => ({...prev, previewUrls: tempUrls, base64Images: [], result: null, aiData: null}));
-
+    // Clear previous state if new files are selected
+    setCalculatorState(prev => ({...prev, previewUrls: [], base64Images: [], result: null, aiData: null}));
     setSugarError(null);
-
-    const getBase64 = (file: File): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve((reader.result as string).split(',')[1]);
-        reader.onerror = error => reject(error);
-      });
-    };
     
+    const tempUrls = files.map(f => URL.createObjectURL(f));
+    setCalculatorState(prev => ({...prev, previewUrls: tempUrls}));
+
     setIsPhotoLoading(true);
 
     try {
-      const b64Promises = files.map(f => getBase64(f));
-      const b64s = await Promise.all(b64Promises);
-      setCalculatorState(prev => ({...prev, base64Images: b64s}));
+      const resizedB64s = await Promise.all(files.map(f => resizeImage(f)));
+      setCalculatorState(prev => ({...prev, base64Images: resizedB64s}));
     } catch(e) {
       alert(t.file_read_error);
     } finally {
@@ -190,23 +216,33 @@ function HomeContent() {
       if (aiResponse.data.error) throw new Error(aiResponse.data.error);
 
       const aiOutput: AIResponse = aiResponse.data.data;
+      if (!aiOutput || !aiOutput.items_breakdown) {
+          throw new Error("Не удалось распознать еду. Попробуйте другое фото.");
+      }
       setCalculatorState(prev => ({...prev, aiData: aiOutput}));
 
       // Calculate Dose (using average XE for calculation, but sending min/max)
-      const currentSugarNum = parseFloat(sugar.replace(',', '.'));
+      const sugarValue = sugar || "5.5";
+      let currentSugarNum = parseFloat(sugarValue.toString().replace(',', '.'));
+      if (isNaN(currentSugarNum)) currentSugarNum = 5.5;
+
       const calcResponse = await axios.post('/api/calculate', {
           telegram_id: activeUser.telegram_id,
           current_sugar: currentSugarNum,
-          total_xe: aiOutput.xe_max // Base it on max for safety during staging/math, will display range later
+          total_xe: aiOutput.xe_max || 0
       });
 
       if (calcResponse.data.error) throw new Error(calcResponse.data.error);
       
       const calcData = calcResponse.data.data;
+      if (!calcData) throw new Error("Ошибка расчета дозы. Проверьте настройки коэффициентов.");
       
       // We will define dose_min based on xe_min safely using coef
       const dose_max = calcData.recommended_dose;
-      const dose_min = parseFloat(((aiOutput.xe_min * calcData.active_coef) + calcData.dps_added).toFixed(1));
+      const xeMin = aiOutput.xe_min || 0;
+      const activeCoef = calcData.active_coef || 1.0;
+      const dpsAdded = calcData.dps_added || 0;
+      const dose_min = parseFloat(((xeMin * activeCoef) + dpsAdded).toFixed(1));
 
       setCalculatorState(prev => ({
           ...prev,
