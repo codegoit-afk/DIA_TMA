@@ -22,7 +22,19 @@ export async function POST(req: Request) {
          telegram_id: id,
          username: username || null,
          first_name: first_name || null,
-         role: 'user' // Default role
+         role: 'user',
+         hypo_threshold: 3.9,
+         target_sugar_min: 5.0,
+         target_sugar_max: 7.0,
+         target_sugar_ideal: 6.0,
+         xe_weight: 12,
+         insulin_dia: 4,
+         isf: 2,
+         coef_matrix: [
+             { min: 1.0, max: 8.0, coef: 2.0 },
+             { min: 8.1, max: 15.0, coef: 1.5 },
+             { min: 15.1, max: 99.0, coef: 1.0 }
+         ]
       };
 
       const { data: createdUser, error: insertError } = await supabaseAdmin
