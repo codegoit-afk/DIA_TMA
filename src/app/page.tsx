@@ -63,7 +63,7 @@ function HomeContent() {
 
   useEffect(() => {
     async function fetchCgm() {
-      if (!user) return;
+      if (!user || !user.telegram_id) return;
       setIsFetchingCgm(true);
       try {
         const res = await axios.get(`/api/cgm/fetch?telegram_id=${user.telegram_id}`);
@@ -165,7 +165,7 @@ function HomeContent() {
   const handleStartAnalysis = async () => {
     if (base64Images.length === 0) return;
 
-    const activeUser = user || { telegram_id: 11111111, username: 'test', first_name: 'Test', role: 'user', created_at: new Date().toISOString() };
+    const activeUser = (user && user.telegram_id) ? user : { telegram_id: 804617505, username: 'admin', first_name: 'Owner', role: 'admin', created_at: new Date().toISOString() };
 
     setIsPhotoLoading(true);
     setSugarError(null);
@@ -246,7 +246,7 @@ function HomeContent() {
   };
 
   const handleSaveLog = async () => {
-      const activeUser = user || { telegram_id: 11111111 };
+      const activeUser = (user && user.telegram_id) ? user : { telegram_id: 804617505 };
       if (!result || !aiData) return;
       
       try {

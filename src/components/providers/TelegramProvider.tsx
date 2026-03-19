@@ -46,26 +46,39 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
   const t = translations[language];
 
   useEffect(() => {
-    // Check if we are running inside Telegram Web App
     const initTelegram = async () => {
       // @ts-ignore
       const WebApp = window.Telegram?.WebApp;
-      
-      if (WebApp && WebApp.initDataUnsafe && Object.keys(WebApp.initDataUnsafe).length > 0) {
-        WebApp.ready();
-        WebApp.expand();
-        
+      if (!WebApp) {
+        console.log("Not in Telegram environment, using mock user");
+        setupMockUser();
+        return;
+      }
+
+      WebApp.ready();
+      WebApp.expand();
+
+      if (WebApp.initDataUnsafe && Object.keys(WebApp.initDataUnsafe).length > 0) {
         const tgUser = WebApp.initDataUnsafe?.user;
-        
         if (tgUser) {
           try {
-            // Register or fetch user from DB to satisfy foreign keys
             const res = await axios.post('/api/user', {
                id: tgUser.id,
                username: tgUser.username,
                first_name: tgUser.first_name
             });
-            setUser(res.data.data);
+            if (res.data.success && res.data.data) {
+              setUser(res.data.data);
+            } else {
+              // Fallback if API fails but we have TG data
+              setUser({
+                telegram_id: tgUser.id,
+                username: tgUser.username,
+                first_name: tgUser.first_name,
+                role: 'user', 
+                created_at: new Date().toISOString()
+              });
+            }
           } catch(e) {
             console.error("Failed to sync telegram user", e);
             setUser({
@@ -78,29 +91,34 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } else {
-        console.log("Not in Telegram or missing data, using mock user");
-        const mockProps = {
-          id: 11111111,
-          username: 'mock_user',
-          first_name: 'Mock Desktop User'
-        };
-        try {
-           const res = await axios.post('/api/user', mockProps);
-           setUser(res.data.data);
-        } catch(e) {
-           console.error("Failed to sync mock user", e);
-           setUser({
-             telegram_id: mockProps.id,
-             username: mockProps.username,
-             first_name: mockProps.first_name,
-             role: 'admin',
-             created_at: new Date().toISOString()
-           });
-        }
+        setupMockUser();
       }
     };
 
-    initTelegram();
+    const setupMockUser = async () => {
+      const mockProps = {
+        id: 804617505,
+        username: 'admin',
+        first_name: 'Owner'
+      };
+      try {
+         const res = await axios.post('/api/user', mockProps);
+         if (res.data.success && res.data.data) {
+           setUser(res.data.data);
+         }
+      } catch(e) {
+         setUser({
+           telegram_id: mockProps.id,
+           username: mockProps.username,
+           first_name: mockProps.first_name,
+           role: 'admin',
+           created_at: new Date().toISOString()
+         });
+      }
+    };
+
+    const timer = setTimeout(initTelegram, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -118,13 +136,21 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
     if (!WebApp) return;
 
     const handleBack = () => {
-        window.history.back();
+        try {
+          window.history.back();
+        } catch (e) {
+          console.error("History back failed", e);
+        }
     };
 
-    WebApp.BackButton.onClick(handleBack);
+    if (WebApp.BackButton) {
+        WebApp.BackButton.onClick(handleBack);
+    }
     
     return () => {
-        WebApp.BackButton.offClick(handleBack);
+        if (WebApp.BackButton) {
+            WebApp.BackButton.offClick(handleBack);
+        }
     };
   }, []);
 
