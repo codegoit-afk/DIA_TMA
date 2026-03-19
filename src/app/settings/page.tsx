@@ -178,7 +178,9 @@ export default function SettingsPage() {
           
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.hypo_threshold}</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 min-h-[2rem] flex items-end">
+                {t.hypo_threshold}
+              </label>
               <div className="nm-inset rounded-2xl p-0.5">
                  <input 
                    type="number" step="0.1" value={hypoThreshold} onChange={(e) => setHypoThreshold(e.target.value)}
@@ -187,7 +189,9 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.target_sugar}</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 min-h-[2rem] flex items-end">
+                {t.target_sugar}
+              </label>
               <div className="nm-inset rounded-2xl p-0.5">
                  <input 
                    type="number" step="0.1" value={targetSugar} onChange={(e) => setTargetSugar(e.target.value)}

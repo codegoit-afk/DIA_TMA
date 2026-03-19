@@ -409,32 +409,58 @@ function HomeContent() {
         {!result && (
           <div className="space-y-6">
              {previewUrls.length > 0 ? (
-                <div className="space-y-4">
-                  <div className="nm-inset rounded-3xl p-3 flex gap-3 overflow-x-auto scrollbar-hide">
-                    {previewUrls.map((url, idx) => (
-                      <div key={idx} className="h-32 min-w-[120px] rounded-2xl overflow-hidden shadow-sm border border-white/50">
-                        <img src={url} alt="food" className="w-full h-full object-cover" />
+                <div className="space-y-6">
+                  <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                    {previewUrls.map((p: string, i: number) => (
+                      <div key={i} className="relative group flex-shrink-0">
+                        <img src={p} alt="Food" className="w-32 h-32 rounded-2xl object-cover shadow-lg border-2 border-white" />
+                        <button 
+                          onClick={() => setCalculatorState(prev => ({
+                            ...prev,
+                            previewUrls: prev.previewUrls.filter((_: string, idx: number) => idx !== i),
+                            base64Images: prev.base64Images.filter((_: string, idx: number) => idx !== i)
+                          }))}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg"
+                        >
+                           ×
+                        </button>
                       </div>
                     ))}
-                    {isPhotoLoading && (
-                      <div className="h-32 min-w-[120px] rounded-[2rem] nm-inset flex items-center justify-center">
-                        <svg className="w-8 h-8 animate-spin text-emerald-500" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
+                    {!previewUrls.length && !isPhotoLoading && (
+                      <div className="w-full h-32 nm-inset rounded-2xl flex items-center justify-center text-gray-300 italic text-[10px] uppercase font-black tracking-widest px-8 text-center bg-gray-50/30">
+                         {t.no_photos_yet}
                       </div>
                     )}
                   </div>
                   
+                  {isPhotoLoading && (
+                    <div className="w-full nm-inset rounded-[2rem] p-10 flex flex-col items-center justify-center gap-4 animate-fade-in-up bg-emerald-50/5">
+                      <div className="relative w-16 h-16">
+                        <svg className="w-16 h-16 animate-spin text-emerald-500" viewBox="0 0 24 24">
+                          <circle className="opacity-10" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" fill="none" />
+                          <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                           <div className="w-8 h-8 rounded-full bg-emerald-500/10 animate-pulse" />
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest animate-pulse">
+                         {t.analyzing}...
+                      </span>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-gray-500 ml-1 uppercase tracking-wider">{t.clarification_label}</label>
-                    <div className="nm-inset rounded-2xl p-1">
+                    <label className="text-[10px] font-black text-gray-500 ml-1 uppercase tracking-widest">
+                       {t.description_label}
+                    </label>
+                    <div className="nm-inset rounded-[2rem] p-1">
                       <input 
-                        type="text"
-                        value={foodText}
-                        onChange={(e) => setFoodText(e.target.value)}
+                        type="text" 
                         placeholder={t.clarification_placeholder}
-                        className="w-full bg-transparent p-4 text-sm font-medium text-[#111827] focus:outline-none placeholder:text-gray-400"
+                        value={foodText} // Assuming foodText maps to description
+                        onChange={(e) => setFoodText(e.target.value)} // Assuming setFoodText maps to setDescription
+                        className="w-full bg-transparent px-5 py-4 text-sm font-bold text-[#111827] focus:outline-none"
                       />
                     </div>
                   </div>
@@ -446,13 +472,13 @@ function HomeContent() {
                         handleStartAnalysis();
                       }}
                       disabled={isPhotoLoading}
-                      className="w-full nm-primary nm-active rounded-[2rem] p-5 text-white font-black uppercase tracking-widest transition-all"
+                      className="w-full nm-primary nm-active rounded-[2rem] p-5 text-white font-black uppercase tracking-widest transition-all flex items-center justify-center"
                     >
                       {isPhotoLoading ? t.analyzing : t.analyze_btn}
                     </button>
                     <button 
                       onClick={handleResetAnalysis}
-                      className="w-full nm-outset nm-active p-5 rounded-[2rem] text-gray-500 font-bold uppercase tracking-widest transition-all"
+                      className="w-full nm-outset nm-active p-5 rounded-[2rem] text-gray-500 font-bold uppercase tracking-widest transition-all flex items-center justify-center"
                     >
                       {t.cancel}
                     </button>
@@ -495,10 +521,10 @@ function HomeContent() {
              <div className="nm-inset rounded-[3rem] p-10 flex flex-col items-center space-y-4">
                 <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">{t.recommended_dose}</span>
                 <div className="flex items-center gap-3">
-                   <h2 className="text-6xl font-black bg-clip-text text-transparent bg-gradient-to-br from-emerald-500 to-cyan-600 tracking-tighter">
+                   <h2 className="text-5xl font-black bg-clip-text text-transparent bg-gradient-to-br from-emerald-500 to-cyan-600 tracking-tighter">
                       {result.dose_min === result.dose_max ? result.dose_max : `${result.dose_min}-${result.dose_max}`}
                    </h2>
-                   <span className="text-xl font-black text-cyan-600 self-end mb-2 uppercase">{t.units}</span>
+                   <span className="text-xl font-black text-cyan-600 self-end mb-1 uppercase">{t.units}</span>
                 </div>
                 {result.is_high_fat && (
                    <div className="nm-outset-sm rounded-full px-4 py-1.5 flex items-center gap-2">
@@ -547,7 +573,7 @@ function HomeContent() {
                 </button>
                 <button 
                    onClick={handleResetAnalysis}
-                   className="w-full nm-outset nm-active p-5 rounded-[2.5rem] text-gray-500 font-bold uppercase tracking-widest transition-all"
+                   className="w-full nm-outset nm-active p-5 rounded-[2.5rem] text-gray-500 font-bold uppercase tracking-widest transition-all flex items-center justify-center"
                 >
                    {t.recalculate}
                 </button>
