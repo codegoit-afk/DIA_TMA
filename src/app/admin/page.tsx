@@ -150,20 +150,20 @@ export default function AdminPage() {
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-indigo-400 tracking-tight">
-                Admin Center
+                Центр управления
               </h1>
               <ShieldCheck className="w-5 h-5 text-emerald-400" />
             </div>
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-0.5">Control Tower</p>
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-0.5">Панель администратора</p>
           </div>
         </div>
 
         {/* Tab Switcher */}
         <div className="flex p-1 bg-white/5 border border-white/10 rounded-2xl">
           {[
-            { id: 'stats', label: 'Stats', icon: BarChart3 },
-            { id: 'users', label: 'Users', icon: Users },
-            { id: 'broadcast', label: 'Blast', icon: Activity }
+            { id: 'stats', label: 'Статистика', icon: BarChart3 },
+            { id: 'users', label: 'Юзеры', icon: Users },
+            { id: 'broadcast', label: 'Рассылка', icon: Activity }
           ].map(tab => (
             <button
               key={tab.id}
@@ -194,10 +194,10 @@ export default function AdminPage() {
           {activeTab === 'stats' && (
             <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-bottom-2">
               {[
-                { label: 'Total Users', value: stats?.total_users, icon: Users, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-                { label: 'Reqs 24h', value: stats?.logs_24h, icon: BarChart3, color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/20' },
-                { label: 'Active 7d', value: stats?.active_7d, icon: Activity, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20' },
-                { label: 'Reminders', value: stats?.reminders_sent, icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
+                { label: 'Всего юзеров', value: stats?.total_users, icon: Users, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+                { label: 'Запросы 24ч', value: stats?.logs_24h, icon: BarChart3, color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/20' },
+                { label: 'Активны 7дн', value: stats?.active_7d, icon: Activity, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20' },
+                { label: 'Напоминания', value: stats?.reminders_sent, icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
               ].map((s, i) => (
                 <div key={i} className={`p-4 rounded-3xl border ${s.bg} flex flex-col justify-between h-28`}>
                   <s.icon className={`w-5 h-5 ${s.color}`} />
@@ -216,7 +216,7 @@ export default function AdminPage() {
                 <Search className="w-4 h-4 text-gray-500" />
                 <input 
                   type="text" 
-                  placeholder="Search by name, @username or ID..." 
+                  placeholder="Поиск по имени, @username или ID..." 
                   value={search} 
                   onChange={(e) => setSearch(e.target.value)}
                   className="bg-transparent border-none text-sm text-white placeholder-gray-600 focus:outline-none w-full font-bold"
@@ -225,7 +225,7 @@ export default function AdminPage() {
 
               <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden divide-y divide-white/10">
                 {filteredUsers.length === 0 ? (
-                  <div className="p-10 text-center text-gray-500 text-sm">No users found</div>
+                  <div className="p-10 text-center text-gray-500 text-sm">Юзеры не найдены</div>
                 ) : (
                   filteredUsers.map(u => (
                     <button 
@@ -235,10 +235,10 @@ export default function AdminPage() {
                     >
                       <div className="flex flex-col items-start gap-1">
                         <span className="font-bold text-white text-sm">
-                          {u.first_name || 'User'} {u.username && <span className="text-gray-500 font-medium text-xs ml-1">@{u.username}</span>}
+                          {u.first_name || 'Пользователь'} {u.username && <span className="text-gray-500 font-medium text-xs ml-1">@{u.username}</span>}
                         </span>
                         <div className="flex items-center gap-3 text-[10px] font-bold text-gray-600 uppercase tracking-widest">
-                          <span>LOGS: {u.total_logs}</span>
+                          <span>ЛОГИ: {u.total_logs}</span>
                           <span>ID: {u.telegram_id}</span>
                         </div>
                       </div>
@@ -254,28 +254,28 @@ export default function AdminPage() {
             <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
                <div className="bg-white/5 border border-white/10 p-6 rounded-[2.5rem] space-y-4">
                   <div className="space-y-2">
-                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Message Content (HTML Supported)</label>
+                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Текст сообщения (поддерживается HTML)</label>
                      <textarea 
                         value={bcMessage}
                         onChange={(e) => setBcMessage(e.target.value)}
-                        placeholder="Hello users! Check out this new feature..."
+                        placeholder="Привет! У нас новая крутая фича..."
                         className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-emerald-500/50 min-h-[120px] font-medium"
                      />
                   </div>
                   
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Button Text</label>
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Текст кнопки</label>
                         <input 
                             type="text"
                             value={bcBtnText}
                             onChange={(e) => setBcBtnText(e.target.value)}
-                            placeholder="Open App"
+                            placeholder="Открыть приложение"
                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none"
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Button URL</label>
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Ссылка кнопки</label>
                         <input 
                             type="text"
                             value={bcBtnUrl}
@@ -293,14 +293,14 @@ export default function AdminPage() {
                         bcLoading ? 'bg-gray-800 text-gray-500' : 'bg-emerald-500 text-black active:scale-95 shadow-lg shadow-emerald-500/20'
                     }`}
                   >
-                    {bcLoading ? 'Blasting...' : 'Send Broadcast'}
+                    {bcLoading ? 'Рассылка...' : 'Запустить рассылку'}
                     {!bcLoading && <Activity className="w-4 h-4" />}
                   </button>
 
                   {bcResult && (
                     <div className="p-4 bg-white/5 border border-white/10 rounded-2xl text-xs space-y-1">
-                        <p className="text-emerald-400 font-bold">Successfully sent to {bcResult.success} users</p>
-                        {bcResult.failed > 0 && <p className="text-rose-400 font-bold">Failed: {bcResult.failed}</p>}
+                        <p className="text-emerald-400 font-bold">Успешно отправлено {bcResult.success} пользователям</p>
+                        {bcResult.failed > 0 && <p className="text-rose-400 font-bold">Ошибок: {bcResult.failed}</p>}
                     </div>
                   )}
                </div>
@@ -316,7 +316,7 @@ export default function AdminPage() {
           <header className="p-6 border-b border-white/10 flex items-center justify-between">
             <div>
               <h3 className="text-xl font-black text-white">{viewingUser.first_name || viewingUser.username}</h3>
-              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Profile View</p>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Профиль пользователя</p>
             </div>
             <button 
               onClick={() => setViewingUser(null)}
@@ -328,18 +328,18 @@ export default function AdminPage() {
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
              <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
-                    <div className="text-[10px] text-gray-500 font-black uppercase mb-1">Total Logs</div>
+                    <div className="text-[10px] text-gray-500 font-black uppercase mb-1">Всего логов</div>
                     <div className="text-xl font-black text-white">{viewingUser.total_logs}</div>
                 </div>
                 <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
-                    <div className="text-[10px] text-gray-500 font-black uppercase mb-1">Last Active</div>
+                    <div className="text-[10px] text-gray-500 font-black uppercase mb-1">Последняя активность</div>
                     <div className="text-sm font-black text-emerald-400">
-                        {viewingUser.last_active ? new Date(viewingUser.last_active).toLocaleString('ru-RU') : 'Never'}
+                        {viewingUser.last_active ? new Date(viewingUser.last_active).toLocaleString('ru-RU') : 'Никогда'}
                     </div>
                 </div>
              </div>
             
-            <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-2">Recent Activity</h4>
+            <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-2">Последняя активность</h4>
             {selectedUserLogs.map(log => (
               <div key={log.id} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex items-center justify-between">
                 <div>
@@ -347,16 +347,16 @@ export default function AdminPage() {
                     {new Date(log.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="text-lg font-black text-white">{log.current_sugar} <span className="text-[10px] font-bold text-cyan-400 uppercase">S</span></div>
-                    <div className="text-lg font-black text-white">{log.total_xe} <span className="text-[10px] font-bold text-amber-400 uppercase">XE</span></div>
+                    <div className="text-lg font-black text-white">{log.current_sugar} <span className="text-[10px] font-bold text-cyan-400 uppercase">С</span></div>
+                    <div className="text-lg font-black text-white">{log.total_xe} <span className="text-[10px] font-bold text-amber-400 uppercase">ХЕ</span></div>
                   </div>
                 </div>
                 <div className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl">
-                  <span className="text-lg font-black text-emerald-400">{log.actual_dose} <span className="text-[8px] uppercase">U</span></span>
+                  <span className="text-lg font-black text-emerald-400">{log.actual_dose} <span className="text-[8px] uppercase">Ед</span></span>
                 </div>
               </div>
             ))}
-            {selectedUserLogs.length === 0 && <div className="text-center text-gray-600 py-10">No logs for this user</div>}
+            {selectedUserLogs.length === 0 && <div className="text-center text-gray-600 py-10">Записей не найдено</div>}
           </div>
         </div>
       )}

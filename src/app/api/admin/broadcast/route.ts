@@ -10,16 +10,16 @@ export async function POST(req: Request) {
 
         // Verify Admin
         if (!telegram_id || telegram_id.toString() !== admin_id) {
-            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return NextResponse.json({ success: false, error: 'Доступ запрещен' }, { status: 401 });
         }
 
         if (!message) {
-            return NextResponse.json({ success: false, error: 'Message is required' }, { status: 400 });
+            return NextResponse.json({ success: false, error: 'Необходимо ввести сообщение' }, { status: 400 });
         }
 
         const botToken = process.env.TELEGRAM_BOT_TOKEN;
         if (!botToken) {
-            throw new Error('Telegram Bot Token not configured');
+            throw new Error('Токен Telegram не настроен');
         }
 
         // Fetch all users to broadcast to
