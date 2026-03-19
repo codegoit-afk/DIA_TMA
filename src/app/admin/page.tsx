@@ -47,6 +47,7 @@ export default function AdminPage() {
   const [bcMessage, setBcMessage] = useState("");
   const [bcBtnText, setBcBtnText] = useState("");
   const [bcBtnUrl, setBcBtnUrl] = useState("");
+  const [bcImageUrl, setBcImageUrl] = useState("");
   const [bcLoading, setBcLoading] = useState(false);
   const [bcResult, setBcResult] = useState<any>(null);
 
@@ -101,13 +102,15 @@ export default function AdminPage() {
         telegram_id: user.telegram_id,
         message: bcMessage,
         button_text: bcBtnText,
-        button_url: bcBtnUrl
+        button_url: bcBtnUrl,
+        image_url: bcImageUrl,
       });
       setBcResult(res.data.data);
       if (res.data.success) {
          setBcMessage("");
          setBcBtnText("");
          setBcBtnUrl("");
+         setBcImageUrl("");
       }
     } catch (e: any) {
       alert("Broadcast failed: " + (e.response?.data?.error || e.message));
@@ -284,6 +287,17 @@ export default function AdminPage() {
                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none"
                         />
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Ссылка на изображение (необязательно)</label>
+                     <input 
+                        type="text"
+                        value={bcImageUrl}
+                        onChange={(e) => setBcImageUrl(e.target.value)}
+                        placeholder="https://example.com/image.jpg"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none"
+                     />
                   </div>
 
                   <button 
