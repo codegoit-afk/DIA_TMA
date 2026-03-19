@@ -328,8 +328,8 @@ function HomeContent() {
       {/* Global Splash Screen Overlay */}
       {showSplash && (
         <div className="fixed inset-0 bg-[#F8F4F0] z-[100] flex flex-col items-center justify-center pointer-events-none transition-opacity duration-1000 opacity-100">
-           <Calculator className="w-16 h-16 text-emerald-500 mb-4 animate-bounce" />
-           <h1 className="text-3xl font-black text-[#111827] tracking-tight animate-pulse">
+           <img src="/logo.png" alt="Logo" className="w-24 h-24 mb-6 animate-pulse" />
+           <h1 className="text-3xl font-black text-[#111827] tracking-tight text-center">
               DIA <span className="font-thin text-emerald-500">AI</span>
            </h1>
         </div>
@@ -338,9 +338,12 @@ function HomeContent() {
       {/* Header (Symmetrical, Logo in center) */}
       <header className="flex items-center justify-between mb-8 pt-6 relative z-10 w-full px-2">
          <div className="w-10" /> {/* Spacer for symmetry */}
-         <h1 className="text-2xl font-black text-[#111827] tracking-tighter">
-            DIA <span className="font-light bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-cyan-500">AI</span>
-         </h1>
+         <div className="flex items-center gap-1.5 translate-x-1">
+            <img src="/logo.png" alt="Logo" className="w-6 h-6" />
+            <h1 className="text-2xl font-black text-[#111827] tracking-tighter">
+               DIA <span className="font-light bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-cyan-500">AI</span>
+            </h1>
+         </div>
          <Link 
            href="/settings"
            onClick={() => window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light')}
