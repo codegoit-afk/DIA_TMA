@@ -58,6 +58,42 @@ export default function Home() {
     fetchCgm();
   }, [user]);
 
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 1024;
+          const MAX_HEIGHT = 1024;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL("image/jpeg", 0.7);
+          resolve(compressed);
+        };
+      };
+    });
+  };
+
   const handleSugarChange = (val: string) => {
     setCalculatorState(prev => ({ ...prev, sugar: val }));
     const num = parseFloat(val.replace(',', '.'));
@@ -72,7 +108,7 @@ export default function Home() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -80,24 +116,24 @@ export default function Home() {
     const newPreviews: string[] = [];
     const newBase64s: string[] = [];
 
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result as string;
-        newPreviews.push(result);
-        newBase64s.push(result.split(',')[1]);
+    try {
+        for (let i = 0; i < files.length; i++) {
+            const compressedDataUrl = await compressImage(files[i]);
+            newPreviews.push(compressedDataUrl);
+            newBase64s.push(compressedDataUrl.split(',')[1]);
+        }
 
-        if (newPreviews.length === files.length) {
-          setCalculatorState(prev => ({
+        setCalculatorState(prev => ({
             ...prev,
             previewUrls: [...prev.previewUrls, ...newPreviews],
             base64Images: [...prev.base64Images, ...newBase64s]
-          }));
-          setIsPhotoLoading(false);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+        }));
+    } catch (err) {
+        console.error("Compression error:", err);
+        setToastMessage("Error processing images");
+    } finally {
+        setIsPhotoLoading(false);
+    }
   };
 
   const handleStartAnalysis = async () => {
@@ -119,11 +155,11 @@ export default function Home() {
             }));
             window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
         } else {
-            setToastMessage(t.save_error);
+            setToastMessage(res.data.error || t.save_error);
         }
     } catch (e: any) {
-        console.error(e);
-        setToastMessage(t.save_error);
+        console.error("Analysis Error:", e?.response?.data || e.message);
+        setToastMessage(e?.response?.data?.error || t.save_error);
     } finally {
         setIsPhotoLoading(false);
     }

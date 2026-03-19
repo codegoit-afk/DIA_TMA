@@ -7,7 +7,13 @@ export const maxDuration = 60; // Allow 60s for OpenAI
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    let body;
+    try {
+        body = await req.json();
+    } catch (e) {
+        return NextResponse.json({ error: "Invalid JSON or payload too large" }, { status: 400 });
+    }
+
     const { 
       telegram_id, 
       sugar, 
@@ -16,7 +22,7 @@ export async function POST(req: Request) {
       imageBase64Array, 
       description, 
       clarification,
-      total_xe // Optional, for manual mode
+      total_xe 
     } = body;
 
     const activeSugar = sugar !== undefined ? sugar : current_sugar;
@@ -24,11 +30,11 @@ export async function POST(req: Request) {
     const activeDescription = description || clarification;
 
     if (!telegram_id || activeSugar === undefined) {
-      return NextResponse.json({ error: "Missing required fields (id or sugar)" }, { status: 400 });
+      return NextResponse.json({ error: "Missing telegram_id or sugar" }, { status: 400 });
     }
 
-    // 1. Get User Profile from Supabase
-    const { data: profileData, error: profileError } = await supabaseAdmin
+    // 1. Get User Profile
+    const { data: profileData } = await supabaseAdmin
       .from('profiles')
       .select('*')
       .eq('telegram_id', telegram_id)
@@ -53,14 +59,14 @@ export async function POST(req: Request) {
     };
 
     const profile = profileData ? (profileData as Profile) : defaultProfile;
-
-    // 2. Check for Hypoglycemia Risk
     const numSugar = parseFloat(activeSugar.toString().replace(',', '.'));
+
+    // 2. Hypo Check
     if (numSugar < profile.hypo_threshold) {
         return NextResponse.json({ 
             success: false,
             error: "CRITICAL_HYPO", 
-            message: `Опасно низкий сахар (${numSugar} < ${profile.hypo_threshold})! Сначала съешьте 1-2 ХЕ быстрых углеводов, подождите 15 минут.`
+            message: `Опасно низкий сахар (${numSugar})! Скушайте быстрые углеводы.`
         });
     }
 
@@ -69,80 +75,62 @@ export async function POST(req: Request) {
     let aiResponse = null;
     let isHighFat = false;
 
-    // 3. AI Vision Analysis if images are provided
+    // 3. AI Analysis
     if (activeImages && Array.isArray(activeImages) && activeImages.length > 0) {
         if (!process.env.OPENAI_API_KEY) {
-            return NextResponse.json({ error: "OpenAI API key not configured" }, { status: 500 });
+            return NextResponse.json({ error: "OpenAI API key missing" }, { status: 500 });
         }
 
-        const systemPrompt = `
-Вы — профессиональный врач-эндокринолог. Ваша задача — ОЦЕНИТЬ МАКСИМАЛЬНО ТОЧНО И ОБЪЕКТИВНО количество хлебных единиц (ХЕ) на фотографии.
-Вес одной ХЕ = ${profile.xe_weight || 12}г углеводов.
-Уточнение пользователя: "${activeDescription || "Нет"}"
+        try {
+            const systemPrompt = `Analyze food images for diabetes management. XE weight = ${profile.xe_weight}g. User note: "${activeDescription || "none"}". Return JSON with thinking_process, items_breakdown, xe_min, xe_max, high_fat.`;
+            
+            const gptRes = await axios.post(
+                "https://api.openai.com/v1/chat/completions",
+                {
+                    model: "gpt-4o",
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: [
+                            { type: "text", text: "Estimate carbs/XE:" },
+                            ...activeImages.map((b64: string) => ({
+                                type: "image_url",
+                                image_url: { url: `data:image/jpeg;base64,${b64}`, detail: "auto" }
+                            }))
+                        ]}
+                    ],
+                    response_format: { type: "json_object" }
+                },
+                { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` }, timeout: 50000 }
+            );
 
-Верни JSON:
-{
-  "thinking_process": "...",
-  "items_breakdown": [{"name": "...", "xe": 1.2}],
-  "xe_min": 5.0,
-  "xe_max": 6.0,
-  "high_fat": true/false
-}`;
-
-        const gptRes = await axios.post(
-            "https://api.openai.com/v1/chat/completions",
-            {
-                model: "gpt-4o",
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: [
-                        { type: "text", text: "Анализируй еду:" },
-                        ...activeImages.map((b64: string) => ({
-                            type: "image_url",
-                            image_url: { url: `data:image/jpeg;base64,${b64}`, detail: "high" }
-                        }))
-                    ]}
-                ],
-                response_format: { type: "json_object" }
-            },
-            { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` } }
-        );
-
-        aiResponse = JSON.parse(gptRes.data.choices[0].message.content);
-        finalXeMin = aiResponse.xe_min;
-        finalXeMax = aiResponse.xe_max;
-        isHighFat = aiResponse.high_fat || false;
-
+            aiResponse = JSON.parse(gptRes.data.choices[0].message.content);
+            finalXeMin = aiResponse.xe_min;
+            finalXeMax = aiResponse.xe_max;
+            isHighFat = aiResponse.high_fat || false;
+        } catch (aiErr: any) {
+            console.error("OpenAI Error Detail:", aiErr?.response?.data || aiErr.message);
+            return NextResponse.json({ error: `AI Analysis failed: ${aiErr.message}` }, { status: 502 });
+        }
     } else if (total_xe !== undefined) {
-        // Manual mode
         finalXeMin = parseFloat(total_xe.toString());
         finalXeMax = parseFloat(total_xe.toString());
     } else {
-        return NextResponse.json({ error: "No images or XE provided" }, { status: 400 });
+        return NextResponse.json({ error: "Provide images or XE value" }, { status: 400 });
     }
 
-    // 4. Calculate Dose
+    // 4. Dose Calculation
     const avgXe = (finalXeMin + finalXeMax) / 2;
-    
-    // Find Coef from Matrix
     let activeCoef = 1.0;
     const matrix = profile.coef_matrix || [];
     const sortedMatrix = [...matrix].sort((a, b) => a.min - b.min);
     
-    let foundMatch = false;
     for (const row of sortedMatrix) {
         if (avgXe >= row.min && avgXe <= row.max) {
             activeCoef = row.coef;
-            foundMatch = true;
             break;
         }
     }
-    if (!foundMatch && sortedMatrix.length > 0) {
-        const highestRow = sortedMatrix[sortedMatrix.length - 1];
-        if (avgXe > highestRow.max) activeCoef = highestRow.coef;
-    }
 
-    let baseDose = avgXe * activeCoef;
     let dps = 0;
     if (numSugar > profile.target_sugar_max && profile.isf && profile.isf > 0) {
         dps = (numSugar - profile.target_sugar_ideal) / profile.isf;
@@ -166,7 +154,7 @@ export async function POST(req: Request) {
     });
 
   } catch (error: any) {
-    console.error("Calculation Error:", error?.response?.data || error.message);
-    return NextResponse.json({ error: "Ошибка при расчете дозы" }, { status: 500 });
+    console.error("Global Calculation Error:", error.message);
+    return NextResponse.json({ error: `Internal Error: ${error.message}` }, { status: 500 });
   }
 }
