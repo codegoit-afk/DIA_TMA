@@ -324,7 +324,7 @@ function HomeContent() {
   };
 
   return (
-    <main className="min-h-screen p-4 max-w-[375px] mx-auto relative pb-36">
+    <main className="min-h-screen p-4 max-w-[375px] mx-auto relative pb-36 overflow-x-hidden">
       {/* Global Splash Screen Overlay */}
       {showSplash && (
         <div className="fixed inset-0 bg-[#F8F4F0] z-[100] flex flex-col items-center justify-center pointer-events-none transition-opacity duration-1000 opacity-100">
@@ -356,12 +356,17 @@ function HomeContent() {
         {/* Sugar Input Section */}
         {!result && (
           <div className="space-y-2 animate-fade-in-up">
-            <label className="text-xs font-medium text-gray-400 ml-1 uppercase tracking-wider">
+            <label className="text-[10px] font-black text-gray-500 ml-1 uppercase tracking-widest">
               {t.current_sugar}
             </label>
             <div className="nm-inset rounded-[2.5rem] p-10 flex flex-col items-center justify-center relative overflow-hidden">
                {isFetchingCgm && (
-                 <div className="absolute top-4 right-4 w-4 h-4 rounded-full border-t-2 border-emerald-500 animate-spin" />
+                 <div className="absolute top-4 right-4">
+                   <svg className="animate-spin h-5 w-5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                   </svg>
+                 </div>
                )}
                {cgmData && (
                  <div className="absolute left-6 top-1/2 -translate-y-1/2 flex flex-col items-center text-emerald-500 animate-pulse">
@@ -412,8 +417,11 @@ function HomeContent() {
                       </div>
                     ))}
                     {isPhotoLoading && (
-                      <div className="h-32 min-w-[120px] rounded-2xl bg-gray-100 animate-pulse flex items-center justify-center">
-                        <div className="w-6 h-6 border-t-2 border-emerald-500 animate-spin rounded-full" />
+                      <div className="h-32 min-w-[120px] rounded-[2rem] nm-inset flex items-center justify-center">
+                        <svg className="w-8 h-8 animate-spin text-emerald-500" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
                       </div>
                     )}
                   </div>
@@ -431,22 +439,22 @@ function HomeContent() {
                     </div>
                   </div>
 
-                  <div className="flex gap-4 pt-2">
-                    <button 
-                      onClick={handleResetAnalysis}
-                      className="flex-1 nm-outset nm-active rounded-2xl p-4 text-gray-500 font-bold transition-all"
-                    >
-                      {t.cancel}
-                    </button>
+                  <div className="flex flex-col gap-4 pt-2">
                     <button 
                       onClick={() => {
                         window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium');
                         handleStartAnalysis();
                       }}
                       disabled={isPhotoLoading}
-                      className="flex-[2] nm-outset nm-active bg-emerald-500 rounded-2xl p-4 text-white font-black uppercase tracking-widest shadow-[inset_0_0_20px_rgba(255,255,255,0.2)]"
+                      className="w-full nm-primary nm-active rounded-[2rem] p-5 text-white font-black uppercase tracking-widest transition-all"
                     >
                       {isPhotoLoading ? t.analyzing : t.analyze_btn}
+                    </button>
+                    <button 
+                      onClick={handleResetAnalysis}
+                      className="w-full nm-outset nm-active p-5 rounded-[2rem] text-gray-500 font-bold uppercase tracking-widest transition-all"
+                    >
+                      {t.cancel}
                     </button>
                   </div>
                 </div>
@@ -484,13 +492,13 @@ function HomeContent() {
         {result && aiData && (
           <div className="space-y-8 animate-fade-in-up">
              {/* Dosage Highlight */}
-             <div className="nm-inset rounded-[3rem] p-8 flex flex-col items-center space-y-4">
-                <span className="text-xs font-bold text-gray-400 tracking-widest uppercase">{t.recommended_dose}</span>
+             <div className="nm-inset rounded-[3rem] p-10 flex flex-col items-center space-y-4">
+                <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">{t.recommended_dose}</span>
                 <div className="flex items-center gap-3">
-                   <h2 className="text-7xl font-black bg-clip-text text-transparent bg-gradient-to-br from-emerald-500 to-cyan-600 tracking-tighter">
+                   <h2 className="text-6xl font-black bg-clip-text text-transparent bg-gradient-to-br from-emerald-500 to-cyan-600 tracking-tighter">
                       {result.dose_min === result.dose_max ? result.dose_max : `${result.dose_min}-${result.dose_max}`}
                    </h2>
-                   <span className="text-2xl font-black text-cyan-600 self-end mb-2 uppercase">{t.units}</span>
+                   <span className="text-xl font-black text-cyan-600 self-end mb-2 uppercase">{t.units}</span>
                 </div>
                 {result.is_high_fat && (
                    <div className="nm-outset-sm rounded-full px-4 py-1.5 flex items-center gap-2">
@@ -526,22 +534,22 @@ function HomeContent() {
              </div>
 
              {/* Action Bar */}
-             <div className="flex gap-4">
-                <button 
-                   onClick={handleResetAnalysis}
-                   className="flex-1 nm-outset nm-active p-5 rounded-3xl text-gray-500 font-bold uppercase tracking-widest transition-all"
-                >
-                   {t.recalculate}
-                </button>
+             <div className="flex flex-col gap-4">
                 <button 
                    onClick={() => {
                       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
                       handleSaveLog();
                    }}
-                   className="flex-[2] nm-outset nm-active bg-emerald-500 p-5 rounded-3xl text-white font-black uppercase tracking-widest flex items-center justify-center gap-2"
+                   className="w-full nm-primary nm-active p-5 rounded-[2.5rem] text-white font-black uppercase tracking-widest flex items-center justify-center gap-2"
                 >
                    <Check className="w-5 h-5" />
                    {t.save_and_inject}
+                </button>
+                <button 
+                   onClick={handleResetAnalysis}
+                   className="w-full nm-outset nm-active p-5 rounded-[2.5rem] text-gray-500 font-bold uppercase tracking-widest transition-all"
+                >
+                   {t.recalculate}
                 </button>
              </div>
           </div>

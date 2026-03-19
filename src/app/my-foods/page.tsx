@@ -254,7 +254,7 @@ export default function MyFoodsPage() {
             <div className="flex gap-4 pt-4">
                 <button
                    onClick={() => setShowAddModal(false)}
-                   className="flex-1 py-4 font-black uppercase tracking-widest text-[10px] text-gray-400 nm-outset nm-active rounded-2xl"
+                   className="flex-1 py-4 font-black uppercase tracking-widest text-[10px] text-gray-500 nm-outset nm-active rounded-2xl"
                 >
                    {t.cancel || "Скасувати"}
                 </button>

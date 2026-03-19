@@ -32,40 +32,41 @@
   --nm-shadow-dark: rgba(214, 210, 206, 0.82);
 }
 
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
 }
 
 /* Neumorphic Utility Classes */
 .nm-outset {
-  background: var(--background);
   box-shadow: 8px 8px 16px var(--nm-shadow-dark), 
               -8px -8px 16px var(--nm-shadow-light);
 }
 
 .nm-inset {
-  background: var(--background);
   box-shadow: inset 8px 8px 16px var(--nm-shadow-dark), 
               inset -8px -8px 16px var(--nm-shadow-light);
 }
 
 .nm-outset-sm {
-  background: var(--background);
   box-shadow: 4px 4px 8px var(--nm-shadow-dark), 
               -4px -4px 8px var(--nm-shadow-light);
 }
 
 .nm-inset-sm {
-  background: var(--background);
   box-shadow: inset 4px 4px 8px var(--nm-shadow-dark), 
               inset -4px -4px 8px var(--nm-shadow-light);
 }
 
+.nm-primary {
+  background: #10b981; /* emerald-500 */
+  box-shadow: 6px 6px 12px rgba(16, 185, 129, 0.3), 
+              -6px -6px 12px rgba(255, 255, 255, 0.4);
+}
+
 .nm-active:active {
+  transform: scale(0.98);
   box-shadow: 3px 3px 6px var(--nm-shadow-dark), 
               -3px -3px 6px var(--nm-shadow-light);
 }
