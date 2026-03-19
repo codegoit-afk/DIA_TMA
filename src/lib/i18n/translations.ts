@@ -23,7 +23,7 @@ export const translations = {
     // Results
     ai_estimate_prefix: "Нейросеть оценила в",
     coef_label: "Коэффициент:",
-    dps_label: "ДПС",
+    dps_label: "на снижение",
     units: "ед.",
     recognized_items: "Распознано на тарелке:",
     recalculate: "Пересчитать",
@@ -111,7 +111,7 @@ export const translations = {
     // Results
     ai_estimate_prefix: "ШІ оцінив у",
     coef_label: "Коефіцієнт:",
-    dps_label: "ДПЦ",
+    dps_label: "на зниження",
     units: "од.",
     recognized_items: "Розпізнано на тарілці:",
     recalculate: "Перерахувати",
