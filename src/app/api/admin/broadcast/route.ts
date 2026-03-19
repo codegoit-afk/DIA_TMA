@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import axios from 'axios';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
     try {
         const body = await req.json();
@@ -22,9 +24,9 @@ export async function POST(req: Request) {
             throw new Error('Токен Telegram не настроен');
         }
 
-        // Fetch all users to broadcast to
+        // Fetch all users to broadcast to from the "users" table (primary identity)
         const { data: users, error } = await supabaseAdmin
-            .from('profiles')
+            .from('users')
             .select('telegram_id');
 
         if (error) throw error;
