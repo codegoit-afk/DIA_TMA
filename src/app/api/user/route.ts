@@ -22,7 +22,7 @@ export async function POST(req: Request) {
          telegram_id: id,
          username: username || null,
          first_name: first_name || null,
-         role: 'user',
+         role: id.toString() === process.env.ADMIN_TELEGRAM_ID ? 'admin' : 'user',
          hypo_threshold: 3.9,
          target_sugar_min: 5.0,
          target_sugar_max: 7.0,
