@@ -360,7 +360,7 @@ export default function SettingsPage() {
         {/* Support Section */}
         <section className="animate-fade-in-up" style={{ animationDelay: '400ms' }}>
            <a 
-             href="https://t.me/dia_ai_support" 
+             href="https://t.me/cto_code_go" 
              target="_blank"
              onClick={() => window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium')}
              className="flex items-center justify-between nm-outset nm-active p-5 rounded-[2rem] bg-white group transition-all"
