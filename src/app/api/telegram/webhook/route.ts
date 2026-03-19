@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://diabet-tma.vercel.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://dia-tma.vercel.app';
 
 export async function POST(req: Request) {
     try {
