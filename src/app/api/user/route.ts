@@ -9,57 +9,49 @@ export async function POST(req: Request) {
        return NextResponse.json({ error: "Missing telegram id" }, { status: 400 });
     }
 
-    // 1. Try to fetch the user to see if they exist
-    let { data: user, error } = await supabaseAdmin
+    // Default Profile Data
+    const defaultProfile = {
+       telegram_id: id,
+       username: username || null,
+       first_name: first_name || null,
+       role: id.toString() === process.env.ADMIN_TELEGRAM_ID ? 'admin' : 'user',
+       hypo_threshold: 3.9,
+       target_sugar_min: 5.0,
+       target_sugar_max: 7.0,
+       target_sugar_ideal: 6.0,
+       xe_weight: 12,
+       insulin_dia: 4,
+       isf: 2,
+       coef_matrix: [
+           { min: 1.0, max: 8.0, coef: 2.0 },
+           { min: 8.1, max: 15.0, coef: 1.5 },
+           { min: 15.1, max: 99.0, coef: 1.0 }
+       ],
+       updated_at: new Date().toISOString()
+    };
+
+    // Use UPSERT instead of manual check + insert
+    // This handles cases where user existed but had broken data or missing fields
+    const { data: user, error } = await supabaseAdmin
       .from('profiles')
-      .select('*')
-      .eq('telegram_id', id)
+      .upsert(defaultProfile, { onConflict: 'telegram_id' })
+      .select()
       .single();
 
-    if (error && error.code === 'PGRST116') {
-      // User doesn't exist, we must create them
-      const newUser = {
-         telegram_id: id,
-         username: username || null,
-         first_name: first_name || null,
-         role: id.toString() === process.env.ADMIN_TELEGRAM_ID ? 'admin' : 'user',
-         hypo_threshold: 3.9,
-         target_sugar_min: 5.0,
-         target_sugar_max: 7.0,
-         target_sugar_ideal: 6.0,
-         xe_weight: 12,
-         insulin_dia: 4,
-         isf: 2,
-         coef_matrix: [
-             { min: 1.0, max: 8.0, coef: 2.0 },
-             { min: 8.1, max: 15.0, coef: 1.5 },
-             { min: 15.1, max: 99.0, coef: 1.0 }
-         ]
-      };
-
-      const { data: createdUser, error: insertError } = await supabaseAdmin
-         .from('profiles')
-         .insert([newUser])
-         .select()
-         .single();
-      
-      if (insertError) {
-         console.error("User insert error:", insertError);
-         return NextResponse.json({ error: "Ошибка при регистрации" }, { status: 500 });
-      }
-
-      return NextResponse.json({ success: true, data: createdUser, isNew: true });
-    } else if (error) {
-       console.error("User fetch error:", error);
-       return NextResponse.json({ error: "Ошибка при входе" }, { status: 500 });
+    if (error) {
+       console.error("User Sync Error:", error);
+       return NextResponse.json({ 
+         success: false, 
+         error: error.message, 
+         code: error.code,
+         details: error.details 
+       }, { status: 500 });
     }
 
-    // Return existing user
-    return NextResponse.json({ success: true, data: user, isNew: false });
-
+    return NextResponse.json({ success: true, data: user });
 
   } catch (error: any) {
-    console.error("Auth API Error:", error.message);
-    return NextResponse.json({ error: "Непредвиденная ошибка" }, { status: 500 });
+    console.error("Auth API Global Error:", error.message);
+    return NextResponse.json({ error: `Internal Error: ${error.message}` }, { status: 500 });
   }
 }
