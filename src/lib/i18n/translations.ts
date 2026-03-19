@@ -34,7 +34,7 @@ export const translations = {
     recognized_items: "Распознано на тарелке:",
     recalculate: "Пересчитать",
     save_and_inject: "Сохранить",
-    disclaimer: "⚠️ Внимание: Расчеты примерные и основаны на визуальном анализе ИИ. Окончательное решение принимайте с учетом своего самочувствия и рекомендаций лечащего врача.",
+    disclaimer: "⚠️ Внимание: Расчеты примерные и основаны на визуальном анализе ИИ. Окончательное решение принимайте с учетом своего самопочуствия и рекомендаций лечащего врача.",
     save_error: "Ошибка сохранения",
     save_success: "Сохранено в историю!",
     file_read_error: "Ошибка чтения файла",
@@ -45,7 +45,7 @@ export const translations = {
     hypo_threshold: "Порог гипо (ммоль/л)",
     target_sugar: "Идеальный сахар",
     xe_weight_label: "Вес 1 ХЕ (в граммах углеводов)",
-    matrix_settings: "Матрица коэффициентов",
+    matrix_settings: "Матриця коэффициентов",
     add: "Добавить",
     xe_from: "ХЕ ОТ",
     xe_to: "ХЕ ДО",
@@ -54,9 +54,11 @@ export const translations = {
 
     // Fat split logic
     fat_alert_title: "Высокое содержание жиров!",
-    fat_alert_desc: "Рекомендуется разделить дозу: уколите 80% сейчас, а оставшиеся 20% — через 1.5 часа (проверьте сахар).",
+    fat_alert_desc: "Рекомендуется разделить дозу: уколите 80% сейчас, а оставшиеся 20% — через 2 часа (проверьте сахар).",
     dose_now: "Сразу:",
-    dose_later: "Через 1.5ч:",
+    dose_later: "Через 2ч:",
+    reminder_high_fat: "⏱ <b>Напоминание!</b> Прошло 2 часа после жирной пищи. Рекомендовано доколоть вторую часть дозы: <b>{dose} ед.</b>",
+    reminder_sugar_check: "🔔 <b>Время проверить сахар!</b> Прошло 2 часа после приема пищи. Пожалуйста, сделайте замер.",
 
     // Logs
     logs_title: "История логов",
@@ -141,7 +143,7 @@ export const translations = {
     recognized_items: "Розпізнано на тарілці:",
     recalculate: "Перерахувати",
     save_and_inject: "Зберегти",
-    disclaimer: "⚠️ Увага: Розрахунки приблизні та базуються на візуальному аналізі ШІ. Приймайте остаточне рішення з урахуванням свого самопочуття та рекомендацій лікаря.",
+    disclaimer: "⚠️ Увага: Розрахунки приблизні та базуються на візуальному аналізу ШІ. Приймайте остаточне рішення з урахуванням свого самопочуття та рекомендацій лікаря.",
     save_error: "Помилка збереження",
     save_success: "Збережено в історію!",
     file_read_error: "Помилка читання файлу",
@@ -161,9 +163,11 @@ export const translations = {
 
     // Fat split logic
     fat_alert_title: "Високий вміст жирів!",
-    fat_alert_desc: "Рекомендується розділити дозу: вколіть 80% зараз, а решту 20% — через 1.5 години (перевірте цукор).",
+    fat_alert_desc: "Рекомендується розділити дозу: вколіть 80% зараз, а решту 20% — через 2 години (перевірте цукор).",
     dose_now: "Одразу:",
-    dose_later: "Через 1.5г:",
+    dose_later: "Через 2г:",
+    reminder_high_fat: "⏱ <b>Нагадування!</b> Минуло 2 години після вживання жирної їжі. Рекомендовано доколоти другу частину дози: <b>{dose} од.</b>",
+    reminder_sugar_check: "🔔 <b>Час перевірити цукор!</b> Минуло 2 години після прийому їжі. Будь ласка, зробіть замір.",
 
     // Logs
     logs_title: "Історія логів",
@@ -172,7 +176,7 @@ export const translations = {
     history_empty: "Історія порожня",
 
     // CGM
-    cgm_integration: "Інтеграція CGM (Моніторинг)",
+    cgm_integration: "Інтеграція CGM (Мониторінг)",
     cgm_source: "Джерело даних",
     cgm_token: "Токен API (Опціонально)",
 
@@ -268,9 +272,11 @@ export const translations = {
 
     // Fat split logic
     fat_alert_title: "High Fat Content!",
-    fat_alert_desc: "Consider a split dose: inject 80% now, and the remaining 20% in 1.5 hours (check your sugar).",
+    fat_alert_desc: "Consider a split dose: inject 80% now, and the remaining 20% in 2 hours (check your sugar).",
     dose_now: "Now:",
-    dose_later: "In 1.5h:",
+    dose_later: "In 2h:",
+    reminder_high_fat: "⏱ <b>Reminder!</b> 2 hours have passed since your high-fat meal. It is recommended to inject the second part of the dose: <b>{dose} U</b>",
+    reminder_sugar_check: "🔔 <b>Time to check your sugar!</b> 2 hours have passed since your meal. Please take a measurement.",
 
     // Logs
     logs_title: "Log History",

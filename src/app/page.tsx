@@ -301,15 +301,25 @@ function HomeContent() {
               actual_dose: avgDose
           });
           
-          // PHASE 10: Schedule Reminder if High Fat
+          // PHASE 10: Schedule Smart Reminders
+          // 1. Mandatory Sugar Check (2 hours later)
+          await axios.post('/api/reminders/schedule', {
+              telegram_id: activeUser.telegram_id,
+              message: t.reminder_sugar_check || '🔔 Time to check your sugar!',
+              hours_delay: 2,
+              type: 'sugar_check'
+          }).catch(err => console.error("Failed to schedule sugar check reminder:", err));
+
+          // 2. High Fat Split Dose (2 hours later)
           if (result.is_high_fat) {
               const remainingDose = Math.round(result.dose_max * 0.2 * 2) / 2;
+              const msg = (t.reminder_high_fat || '⏱ Reminder! Inject remaining {dose} U').replace('{dose}', remainingDose.toString());
               await axios.post('/api/reminders/schedule', {
                   telegram_id: activeUser.telegram_id,
-                  message: `⏱ <b>Напоминание!</b> Прошло 2 часа после плотного (жирного) приема пищи.\n\nРекомендовано доколоть оставшуюся часть дозы: <b>${remainingDose} ед.</b>`,
+                  message: msg,
                   hours_delay: 2,
                   type: 'high_fat_split'
-              }).catch(err => console.error("Failed to schedule reminder:", err));
+              }).catch(err => console.error("Failed to schedule high fat reminder:", err));
           }
 
           setToastMessage(t.save_success);
