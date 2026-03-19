@@ -1,13 +1,30 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { Profile } from "@/types";
+import axios from "axios";
+
+export const maxDuration = 60; // Allow 60s for OpenAI
 
 export async function POST(req: Request) {
   try {
-    const { telegram_id, current_sugar, total_xe } = await req.json();
+    const body = await req.json();
+    const { 
+      telegram_id, 
+      sugar, 
+      current_sugar, 
+      images, 
+      imageBase64Array, 
+      description, 
+      clarification,
+      total_xe // Optional, for manual mode
+    } = body;
 
-    if (!telegram_id || current_sugar === undefined || total_xe === undefined) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    const activeSugar = sugar !== undefined ? sugar : current_sugar;
+    const activeImages = images || imageBase64Array;
+    const activeDescription = description || clarification;
+
+    if (!telegram_id || activeSugar === undefined) {
+      return NextResponse.json({ error: "Missing required fields (id or sugar)" }, { status: 400 });
     }
 
     // 1. Get User Profile from Supabase
@@ -17,7 +34,6 @@ export async function POST(req: Request) {
       .eq('telegram_id', telegram_id)
       .single();
 
-    // Fallback profile if user hasn't configured settings yet
     const defaultProfile: Profile = {
         telegram_id: telegram_id,
         hypo_threshold: 3.9,
@@ -38,69 +54,119 @@ export async function POST(req: Request) {
 
     const profile = profileData ? (profileData as Profile) : defaultProfile;
 
-    if (profileError && profileError.code !== 'PGRST116') {
-      console.error("Profile fetch error:", profileError);
-      // We log the error but still proceed with defaultProfile to not block the user entirely
-    }
-
     // 2. Check for Hypoglycemia Risk
-    if (current_sugar < profile.hypo_threshold) {
+    const numSugar = parseFloat(activeSugar.toString().replace(',', '.'));
+    if (numSugar < profile.hypo_threshold) {
         return NextResponse.json({ 
+            success: false,
             error: "CRITICAL_HYPO", 
-            message: `Опасно низкий сахар (${current_sugar} < ${profile.hypo_threshold})! Сначала съешьте 1-2 ХЕ быстрых углеводов, подождите 15 минут.`
+            message: `Опасно низкий сахар (${numSugar} < ${profile.hypo_threshold})! Сначала съешьте 1-2 ХЕ быстрых углеводов, подождите 15 минут.`
         });
     }
 
-    // 3. Find Correct Coef from Matrix (Depends on XE)
-    let activeCoef = 1.0; // Fallback
-    const matrix = profile.coef_matrix || [];
+    let finalXeMin = 0;
+    let finalXeMax = 0;
+    let aiResponse = null;
+    let isHighFat = false;
+
+    // 3. AI Vision Analysis if images are provided
+    if (activeImages && Array.isArray(activeImages) && activeImages.length > 0) {
+        if (!process.env.OPENAI_API_KEY) {
+            return NextResponse.json({ error: "OpenAI API key not configured" }, { status: 500 });
+        }
+
+        const systemPrompt = `
+Вы — профессиональный врач-эндокринолог. Ваша задача — ОЦЕНИТЬ МАКСИМАЛЬНО ТОЧНО И ОБЪЕКТИВНО количество хлебных единиц (ХЕ) на фотографии.
+Вес одной ХЕ = ${profile.xe_weight || 12}г углеводов.
+Уточнение пользователя: "${activeDescription || "Нет"}"
+
+Верни JSON:
+{
+  "thinking_process": "...",
+  "items_breakdown": [{"name": "...", "xe": 1.2}],
+  "xe_min": 5.0,
+  "xe_max": 6.0,
+  "high_fat": true/false
+}`;
+
+        const gptRes = await axios.post(
+            "https://api.openai.com/v1/chat/completions",
+            {
+                model: "gpt-4o",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: [
+                        { type: "text", text: "Анализируй еду:" },
+                        ...activeImages.map((b64: string) => ({
+                            type: "image_url",
+                            image_url: { url: `data:image/jpeg;base64,${b64}`, detail: "high" }
+                        }))
+                    ]}
+                ],
+                response_format: { type: "json_object" }
+            },
+            { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` } }
+        );
+
+        aiResponse = JSON.parse(gptRes.data.choices[0].message.content);
+        finalXeMin = aiResponse.xe_min;
+        finalXeMax = aiResponse.xe_max;
+        isHighFat = aiResponse.high_fat || false;
+
+    } else if (total_xe !== undefined) {
+        // Manual mode
+        finalXeMin = parseFloat(total_xe.toString());
+        finalXeMax = parseFloat(total_xe.toString());
+    } else {
+        return NextResponse.json({ error: "No images or XE provided" }, { status: 400 });
+    }
+
+    // 4. Calculate Dose
+    const avgXe = (finalXeMin + finalXeMax) / 2;
     
-    // Sort matrix by min value just in case
+    // Find Coef from Matrix
+    let activeCoef = 1.0;
+    const matrix = profile.coef_matrix || [];
     const sortedMatrix = [...matrix].sort((a, b) => a.min - b.min);
     
     let foundMatch = false;
     for (const row of sortedMatrix) {
-        if (total_xe >= row.min && total_xe <= row.max) {
+        if (avgXe >= row.min && avgXe <= row.max) {
             activeCoef = row.coef;
             foundMatch = true;
             break;
         }
     }
-
-    // If XE is higher than max matrix value, use the highest bracket coefficient
     if (!foundMatch && sortedMatrix.length > 0) {
         const highestRow = sortedMatrix[sortedMatrix.length - 1];
-        if (total_xe > highestRow.max) {
-             activeCoef = highestRow.coef;
-        }
+        if (avgXe > highestRow.max) activeCoef = highestRow.coef;
     }
 
-    // 4. Calculate Final Dose
-    // Base Dose = Total XE * Coeff
-    let calculatedDose = total_xe * activeCoef;
-
-    // Optional: Add DPS (Correction Dose) if sugar is above target range
-    // Formula: (Current - Target) / ISF
+    let baseDose = avgXe * activeCoef;
     let dps = 0;
-    if (profile.target_sugar_max && current_sugar > profile.target_sugar_max && profile.isf && profile.isf > 0) {
-        dps = (current_sugar - profile.target_sugar_ideal) / profile.isf;
-        calculatedDose += dps;
+    if (numSugar > profile.target_sugar_max && profile.isf && profile.isf > 0) {
+        dps = (numSugar - profile.target_sugar_ideal) / profile.isf;
     }
 
-    // Round to nearest 0.5 unit (standard insulin pen step)
-    const roundedDose = Math.round(calculatedDose * 2) / 2;
+    const totalDoseMin = Math.round((finalXeMin * activeCoef + dps) * 2) / 2;
+    const totalDoseMax = Math.round((finalXeMax * activeCoef + dps) * 2) / 2;
 
     return NextResponse.json({ 
         success: true, 
-        data: {
-            recommended_dose: roundedDose,
-            active_coef: activeCoef,
-            dps_added: Math.round(dps * 2) / 2
-        } 
+        result: {
+            xe_min: finalXeMin,
+            xe_max: finalXeMax,
+            dose_min: totalDoseMin,
+            dose_max: totalDoseMax,
+            coef: activeCoef,
+            dps: Math.round(dps * 2) / 2,
+            is_high_fat: isHighFat
+        },
+        aiResponse: aiResponse
     });
 
   } catch (error: any) {
-    console.error("Calculation Error:", error.message);
+    console.error("Calculation Error:", error?.response?.data || error.message);
     return NextResponse.json({ error: "Ошибка при расчете дозы" }, { status: 500 });
   }
 }
