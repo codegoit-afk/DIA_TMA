@@ -2,6 +2,7 @@ export type User = {
   telegram_id: number;
   username?: string;
   first_name?: string;
+  guardian_id?: string;
   role: 'user' | 'admin';
   created_at: string;
 };
@@ -15,15 +16,16 @@ export type CoefMatrixRow = {
 export type Profile = {
   telegram_id: number;
   hypo_threshold: number;
-  target_sugar_min: number;
-  target_sugar_max: number;
+  target_sugar_min?: number;
+  target_sugar_max?: number;
   target_sugar_ideal: number;
   xe_weight: number;
-  use_k2: boolean;
+  use_k2?: boolean;
   insulin_dia: number;
-  isf: number;
+  isf?: number;
   coef_matrix: CoefMatrixRow[];
   updated_at: string;
+  guardian_id?: string;
   cgm_settings?: {
     type: 'none' | 'nightscout';
     nightscout_url?: string;

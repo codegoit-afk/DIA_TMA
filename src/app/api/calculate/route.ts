@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     // Optional: Add DPS (Correction Dose) if sugar is above target range
     // Formula: (Current - Target) / ISF
     let dps = 0;
-    if (current_sugar > profile.target_sugar_max && profile.isf > 0) {
+    if (profile.target_sugar_max && current_sugar > profile.target_sugar_max && profile.isf && profile.isf > 0) {
         dps = (current_sugar - profile.target_sugar_ideal) / profile.isf;
         calculatedDose += dps;
     }

@@ -6,6 +6,7 @@ import { ArrowLeft, TrendingUp, Download, Activity, Droplets, Syringe } from "lu
 import { useUser } from "@/components/providers/TelegramProvider";
 import { cn } from "@/lib/utils/utils";
 import axios from "axios";
+import PDFReportButton from "@/components/PDFReportButton";
 
 declare global { interface Window { Telegram?: any; } }
 
@@ -36,7 +37,7 @@ function Sparkline({ data }: { data: DailyAvg[] }) {
   const PAD = 20;
 
   const values = data.map(d => d.avg_sugar);
-  const min = Math.min(...values, 3.9); // Ensure we see target range
+  const min = Math.min(...values, 3.9); 
   const max = Math.max(...values, 10);
   const range = max - min || 1;
 
@@ -48,7 +49,6 @@ function Sparkline({ data }: { data: DailyAvg[] }) {
   return (
     <div className="nm-inset rounded-[2rem] p-4 bg-[#F8F4F0]">
        <svg viewBox={`0 0 ${W} ${H}`} className="w-full overflow-visible">
-         {/* Reference Lines */}
          <line x1={PAD} y1={toY(10)} x2={W-PAD} y2={toY(10)} stroke="#fb7185" strokeWidth="1" strokeDasharray="4 4" opacity="0.3" />
          <line x1={PAD} y1={toY(3.9)} x2={W-PAD} y2={toY(3.9)} stroke="#34d399" strokeWidth="1" strokeDasharray="4 4" opacity="0.3" />
          
@@ -135,8 +135,6 @@ export default function AnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Show BackButton on Analytics
-    // @ts-ignore
     const WebApp = window.Telegram?.WebApp;
     if (WebApp) {
       WebApp.BackButton.show();
@@ -173,7 +171,6 @@ export default function AnalyticsPage() {
 
   return (
     <main className="min-h-screen p-4 max-w-[375px] mx-auto pb-32 relative bg-[#F8F4F0]">
-      {/* Header */}
       <header className="flex items-center justify-between mb-8 pt-6 relative z-10 w-full px-2">
          <Link 
            href="/"
@@ -193,7 +190,6 @@ export default function AnalyticsPage() {
          </button>
       </header>
 
-      {/* Period Selector */}
       <div className="nm-inset rounded-[2rem] p-1.5 flex gap-1 mb-8">
         {[7, 30].map(p => (
           <button
@@ -225,7 +221,6 @@ export default function AnalyticsPage() {
         </div>
       ) : (
         <div className="space-y-8 animate-fade-in-up">
-          {/* Stats Row */}
           <div className="grid grid-cols-3 gap-4 px-1">
             {statCards.map((card, i) => (
               <div key={i} className="nm-outset rounded-[2rem] p-4 flex flex-col items-center text-center">
@@ -237,7 +232,6 @@ export default function AnalyticsPage() {
             ))}
           </div>
 
-          {/* TIR Section */}
           <section className="nm-outset rounded-[2.5rem] p-8 space-y-6">
             <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
               <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
@@ -249,7 +243,6 @@ export default function AnalyticsPage() {
             <p className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-widest opacity-60">{t.tir_target_range}</p>
           </section>
 
-          {/* Sparkline */}
           {data.daily_avg.length >= 2 && (
             <section className="nm-outset rounded-[2.5rem] p-8 space-y-6">
               <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
@@ -266,14 +259,16 @@ export default function AnalyticsPage() {
             </section>
           )}
 
-          {/* Export Button */}
-          <button 
-             onClick={handleExport}
-             className="w-full nm-outset nm-active bg-[#111827] p-6 rounded-[2rem] text-white font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl"
-          >
-             <Download className="w-4 h-4 text-emerald-400" />
-             {t.download_csv}
-          </button>
+          <div className="flex flex-col gap-4">
+            <button 
+               onClick={handleExport}
+               className="w-full nm-outset nm-active bg-[#111827] p-6 rounded-[2rem] text-white font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl"
+            >
+               <Download className="w-4 h-4 text-emerald-400" />
+               {t.download_csv}
+            </button>
+            <PDFReportButton period={period} />
+          </div>
           
           <p className="text-center text-[8px] font-bold text-gray-300 uppercase tracking-widest pb-10">
              {t.export_desc.replace('{days}', period.toString())}

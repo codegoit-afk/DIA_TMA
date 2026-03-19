@@ -44,7 +44,7 @@ export const translations = {
     basic_settings: "Базовые параметры",
     hypo_threshold: "Порог гипо (ммоль/л)",
     target_sugar: "Идеальный сахар",
-    xe_weight_label: "Вес 1 ХЕ (в граммах углеводов)",
+    xe_weight_label: "Вес 1 ХЕ (в граммах углеводів)",
     matrix_settings: "Матриця коэффициентов",
     add: "Добавить",
     xe_from: "ХЕ ОТ",
@@ -95,7 +95,7 @@ export const translations = {
     iob_note: "учтен в дозе",
     insulin_dia_label: "Длительность действия инсулина (DIA, ч)",
     analytics_title: "Аналитика",
-    analytics_nav: "Тренды",
+    analytics_nav: "Тренди",
     avg_sugar: "Средний сахар",
     avg_xe: "Средние ХЕ",
     avg_dose: "Средняя доза",
@@ -109,11 +109,29 @@ export const translations = {
     no_data_desc: "Начни использовать калькулятор, чтобы здесь появились твои тренды",
     days_7: "7 дней",
     days_30: "30 дней",
+    download_pdf: "Скачать PDF отчет",
+    pdf_report_title: "Медицинский отчет",
+    pdf_report_period: "Период",
+    pdf_patient_name: "Пациент",
 
     // Support & Guide
     contact_devs: "Связаться с разработчиками",
     cgm_how_to: "Как подключить?",
-    cgm_instruction: "Для подключения Nightscout введите URL вашего сервера (например, https://my-cgm.herokuapp.com) и API токен доступа (из секретов Nightscout)."
+    cgm_instruction: "Для подключения Nightscout введите URL вашего сервера (например, https://my-cgm.herokuapp.com) и API токен доступа (из секретов Nightscout).",
+
+    // Guard Mode
+    guardian_mode: "Режим Опеки",
+    guardian_id_label: "Telegram ID Родителя",
+    guardian_id_placeholder: "Напр. 12345678",
+    get_my_id: "Мой ID: {id}",
+    guardian_description: "Родитель будет получать уведомления о каждом вашем приеме пищи и дозе инсулина.",
+
+    // Voice Input
+    voice_button: "🎙 Голос",
+    voice_recording: "Запись...",
+    voice_processing: "Распознаю...",
+    voice_error: "Ошибка записи",
+    voice_stop: "Нажми, чтобы стоп"
   },
   ua: {
     app_title: "Калькулятор ХО",
@@ -171,7 +189,7 @@ export const translations = {
     fat_alert_desc: "Рекомендується розділити дозу: вколіть 80% зараз, а решту 20% — через 2 години (перевірте цукор).",
     dose_now: "Одразу:",
     dose_later: "Через 2г:",
-    reminder_high_fat: "⏱ <b>Нагадування!</b> Минуло 2 години після вживання жирної їжі. Рекомендовано доколоти другу частину дози: <b>{dose} од.</b>",
+    reminder_high_fat: "⏱ <b>Нагадування!</b> Минуло 2 години після вживання жирної їжі. Рекомендовано доколоть другу частину дози: <b>{dose} од.</b>",
     reminder_sugar_check: "🔔 <b>Час перевірити цукор!</b> Минуло 2 години після прийому їжі. Будь ласка, зробіть замір.",
 
     // Logs
@@ -223,11 +241,29 @@ export const translations = {
     no_data_desc: "Почни використовувати калькулятор, щоб тут з'явилися твої тренди",
     days_7: "7 днів",
     days_30: "30 днів",
+    download_pdf: "Завантажити PDF звіт",
+    pdf_report_title: "Медичний звіт",
+    pdf_report_period: "Період",
+    pdf_patient_name: "Пацієнт",
 
     // Support & Guide
     contact_devs: "Зв'язатись з розробниками",
     cgm_how_to: "Як підключити?",
-    cgm_instruction: "Для підключення Nightscout введіть URL вашого сервера (наприклад, https://my-cgm.herokuapp.com) та API токен доступу (з секретів Nightscout)."
+    cgm_instruction: "Для підключення Nightscout введіть URL вашого сервера (наприклад, https://my-cgm.herokuapp.com) та API токен доступу (з секретів Nightscout).",
+
+    // Guard Mode
+    guardian_mode: "Режим Опіки",
+    guardian_id_label: "Telegram ID Батьків",
+    guardian_id_placeholder: "Напр. 12345678",
+    get_my_id: "Мій ID: {id}",
+    guardian_description: "Батьки отримають сповіщення про кожен ваш прийом їжі та дозу інсуліну.",
+
+    // Voice Input
+    voice_button: "🎙 Голос",
+    voice_recording: "Запис...",
+    voice_processing: "Розпізнаю...",
+    voice_error: "Помилка запису",
+    voice_stop: "Натисни, щоб стоп"
   },
   en: {
     app_title: "Carb Calculator",
@@ -337,10 +373,28 @@ export const translations = {
     no_data_desc: "Start using the calculator to see your trends here",
     days_7: "7 days",
     days_30: "30 days",
+    download_pdf: "Download PDF Report",
+    pdf_report_title: "Medical Report",
+    pdf_report_period: "Period",
+    pdf_patient_name: "Patient",
 
     // Support & Guide
     contact_devs: "Contact Developers",
     cgm_how_to: "How to connect?",
-    cgm_instruction: "To connect Nightscout, enter your server URL (e.g., https://my-cgm.herokuapp.com) and your API Access Token (from Nightscout secrets)."
+    cgm_instruction: "To connect Nightscout, enter your server URL (e.g., https://my-cgm.herokuapp.com) and your API Access Token (from Nightscout secrets).",
+
+    // Guard Mode
+    guardian_mode: "Guard Mode",
+    guardian_id_label: "Guardian Telegram ID",
+    guardian_id_placeholder: "e.g. 12345678",
+    get_my_id: "My ID: {id}",
+    guardian_description: "The guardian will receive notifications about every meal and insulin dose.",
+
+    // Voice Input
+    voice_button: "🎙 Voice",
+    voice_recording: "Recording...",
+    voice_processing: "Processing...",
+    voice_error: "Recording error",
+    voice_stop: "Tap to stop"
   }
 };

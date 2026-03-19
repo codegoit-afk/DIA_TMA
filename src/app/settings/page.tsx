@@ -26,6 +26,9 @@ export default function SettingsPage() {
   const [nightscoutUrl, setNightscoutUrl] = useState("");
   const [nightscoutToken, setNightscoutToken] = useState("");
 
+  // Guard Mode
+  const [guardianId, setGuardianId] = useState("");
+
   // IOB / Basal Settings
   const [insulinDia, setInsulinDia] = useState("4");
 
@@ -59,7 +62,7 @@ export default function SettingsPage() {
         if (res.data.success && res.data.data) {
           const profile = res.data.data;
           if (profile.hypo_threshold) setHypoThreshold(profile.hypo_threshold.toString());
-          if (profile.target_sugar) setTargetSugar(profile.target_sugar.toString());
+          if (profile.target_sugar_ideal) setTargetSugar(profile.target_sugar_ideal.toString());
           if (profile.xe_weight) setXeWeight(profile.xe_weight.toString());
           if (profile.coef_matrix && profile.coef_matrix.length > 0) {
             setMatrix(profile.coef_matrix);
@@ -70,6 +73,7 @@ export default function SettingsPage() {
             setNightscoutToken(profile.cgm_settings.nightscout_token || "");
           }
           if (profile.insulin_dia) setInsulinDia(profile.insulin_dia.toString());
+          if (profile.guardian_id) setGuardianId(profile.guardian_id.toString());
         }
         
         // Check if user is admin
@@ -110,11 +114,12 @@ export default function SettingsPage() {
           nightscout_token: nightscoutToken
         },
         insulin_dia: parseFloat(insulinDia),
+        guardian_id: guardianId,
         language: language // Save language preference too
       });
       if (res.data.success) {
         window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
-        alert(t.save_success || "Збережено!");
+        alert(t.save_success || "Saved!");
       }
     } catch (e) {
       console.error(e);
@@ -230,6 +235,7 @@ export default function SettingsPage() {
                     key={d}
                     onClick={() => {
                       window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
+                      setLanguage(language); // Trigger re-render check
                       setInsulinDia(d.toString());
                     }}
                     className={cn(
@@ -315,17 +321,17 @@ export default function SettingsPage() {
                     >
                       <option value="none">Отключено / Disabled</option>
                       <option value="nightscout">Nightscout</option>
-                     </select>
-                  </div>
-                  {cgmType === 'nightscout' && (
+                    </select>
+                 </div>
+                 {cgmType === 'nightscout' && (
                     <div className="mx-1 mt-2 p-3 rounded-2xl bg-blue-50/50 border border-blue-100/50">
                        <p className="text-[10px] leading-relaxed text-blue-600 font-medium">
                          <span className="font-black uppercase mr-1">{t.cgm_how_to}</span>
                          {t.cgm_instruction}
                        </p>
                     </div>
-                  )}
-               </div>
+                 )}
+              </div>
 
               {cgmType === 'nightscout' && (
                 <div className="space-y-4 animate-fade-in-up">
@@ -354,6 +360,49 @@ export default function SettingsPage() {
                    </div>
                 </div>
               )}
+           </div>
+        </section>
+
+        {/* Guard Mode Section */}
+        <section className="space-y-6 nm-outset rounded-[2.5rem] p-6 animate-fade-in-up" style={{ animationDelay: '350ms' }}>
+           <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+              <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center">
+                 <ShieldCheck className="w-4 h-4 text-orange-500" />
+              </div>
+              <h2 className="text-sm font-black text-[#111827] uppercase tracking-wider">{t.guardian_mode}</h2>
+           </div>
+
+           <div className="space-y-4">
+              <p className="text-[10px] leading-relaxed text-gray-400 font-medium px-1">
+                 {t.guardian_description}
+              </p>
+              
+              <div className="space-y-2">
+                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.guardian_id_label}</label>
+                 <div className="nm-inset rounded-2xl p-1">
+                    <input 
+                      type="text" 
+                      value={guardianId} 
+                      onChange={(e) => setGuardianId(e.target.value)}
+                      placeholder={t.guardian_id_placeholder}
+                      className="w-full bg-transparent p-3 text-sm font-bold text-[#111827] focus:outline-none"
+                    />
+                 </div>
+              </div>
+
+              <div className="flex justify-center">
+                 <button 
+                   onClick={() => {
+                      window.Telegram?.WebApp?.HapticFeedback?.selectionChanged();
+                      if (user?.telegram_id) {
+                         navigator.clipboard.writeText(user.telegram_id.toString());
+                      }
+                   }}
+                   className="text-[10px] font-bold text-orange-500 uppercase tracking-widest hover:opacity-70 transition-opacity"
+                 >
+                    {t.get_my_id.replace('{id}', user?.telegram_id?.toString() || '...')}
+                 </button>
+              </div>
            </div>
         </section>
 

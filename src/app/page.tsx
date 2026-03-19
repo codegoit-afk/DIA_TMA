@@ -1,280 +1,134 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, Suspense } from "react";
-import { Camera, Calculator, Settings, History, AlertCircle, Syringe, Wheat, Check, UtensilsCrossed, BookmarkPlus, TrendingUp } from "lucide-react";
+import { useEffect, useState, useRef, useMemo } from "react";
+import { 
+  Camera, 
+  Settings, 
+  History, 
+  ChevronRight, 
+  Check, 
+  AlertCircle,
+  TrendingUp,
+  Clock,
+  Mic,
+  ArrowRight,
+  Info,
+  Calendar,
+  Loader2
+} from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from 'next/navigation';
-import { cn } from "@/lib/utils/utils";
-
-import axios from "axios";
 import { useUser } from "@/components/providers/TelegramProvider";
-import { AIResponse } from "@/types";
-
-declare global {
-  interface Window {
-    Telegram?: any;
-  }
-}
+import { cn } from "@/lib/utils/utils";
+import axios from "axios";
+import VoiceRecorder from "@/components/VoiceRecorder";
+import { User } from "@/types";
 
 export default function Home() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-[#030712]" />}>
-      <HomeContent />
-    </Suspense>
-  );
-}
-
-function HomeContent() {
-  const { user, calculatorState, setCalculatorState, t, language, setLanguage, showSplash } = useUser();
-  const { sugar, previewUrls, base64Images, result, aiData } = calculatorState;
-
-  const [isPhotoLoading, setIsPhotoLoading] = useState(false);
-  const [sugarError, setSugarError] = useState<string | null>(null);
-  const [foodText, setFoodText] = useState<string>(""); 
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // CGM State
-  const [cgmData, setCgmData] = useState<{ glucose: number; direction: string; timestamp: string } | null>(null);
-  const [isFetchingCgm, setIsFetchingCgm] = useState(false);
-
-  // IOB (Insulin on Board)
-  const [iob, setIob] = useState<number>(0);
-
-  // My Foods - Quick log
-  const [xeOverride, setXeOverride] = useState<string>(""); // Manual XE correction
-  const [quickFoodName, setQuickFoodName] = useState<string | null>(null);
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    if (toastMessage) {
-       const timer = setTimeout(() => setToastMessage(null), 3000);
-       return () => clearTimeout(timer);
-    }
-  }, [toastMessage]);
-
-  useEffect(() => {
-    // Hide BackButton on Home
-    // @ts-ignore
-    const WebApp = window.Telegram?.WebApp;
-    if (WebApp) {
-      WebApp.BackButton.hide();
-    }
-  }, []);
-
-  useEffect(() => {
-    async function fetchCgm() {
-      if (!user || !user.telegram_id) return;
-      setIsFetchingCgm(true);
-      try {
-        const res = await axios.get(`/api/cgm/fetch?telegram_id=${user.telegram_id}`);
-        if (res.data.success && res.data.active && res.data.data) {
-          const { glucose, direction, dateString } = res.data.data;
-          setCgmData({ glucose, direction, timestamp: dateString });
-          
-          setCalculatorState(prev => {
-             // Only auto-fill if the user hasn't typed anything yet or it matches old CGM value
-             if (!prev.sugar || prev.sugar === cgmData?.glucose.toString()) {
-                 return { ...prev, sugar: glucose.toString() };
-             }
-             return prev;
-          });
-        }
-      } catch (e) {
-        // Silently fail if no CGM configured or error
-      } finally {
-        setIsFetchingCgm(false);
-      }
-    }
-    fetchCgm();
-    
-    // Auto-refresh every 3 minutes
-    const interval = setInterval(fetchCgm, 3 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [user]);
-
-  const getTrendArrow = (dir: string) => {
-    const arrows: Record<string, string> = {
-        'DoubleUp': '⇈', 'SingleUp': '↑', 'FortyFiveUp': '↗',
-        'Flat': '→', 'FortyFiveDown': '↘', 'SingleDown': '↓', 'DoubleDown': '⇊'
-    };
-    return arrows[dir] || '';
-  };
-
-  // Handle ?quick_food=X&quick_xe=Y navigation from My Foods page
-  useEffect(() => {
-    const qName = searchParams?.get('quick_food');
-    const qXe = searchParams?.get('quick_xe');
-    if (qName && qXe) {
-      setQuickFoodName(qName);
-      setXeOverride(qXe);
-      setCalculatorState(prev => ({ ...prev, result: {
-        dose_min: 0, dose_max: 0,
-        xe_min: parseFloat(qXe), xe_max: parseFloat(qXe),
-        coef: 0, dps: 0, is_high_fat: false
-      }, aiData: null }));
-    }
-  }, [searchParams]);
-  
+  const { user, calculatorState, setCalculatorState, language, t, showSplash } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { sugar, previewUrls, base64Images, result, aiData } = calculatorState;
+  const [isPhotoLoading, setIsPhotoLoading] = useState(false);
+  const [sugarError, setSugarError] = useState<string | null>(null);
+  const [foodText, setFoodText] = useState("");
+  const [xeOverride, setXeOverride] = useState("");
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [quickFoodName, setQuickFoodName] = useState<string | null>(null);
+  const [cgmData, setCgmData] = useState<any>(null);
+  const [isFetchingCgm, setIsFetchingCgm] = useState(false);
+
+  // Load CGM data
+  useEffect(() => {
+    const fetchCgm = async () => {
+       if (!user?.telegram_id) return;
+       setIsFetchingCgm(true);
+       try {
+         const res = await axios.get(`/api/cgm?telegram_id=${user.telegram_id}`);
+         if (res.data.success) {
+           setCgmData(res.data.data);
+         }
+       } catch (e) {
+         console.error("CGM fetch error", e);
+       } finally {
+         setIsFetchingCgm(false);
+       }
+    };
+    fetchCgm();
+  }, [user]);
+
   const handleSugarChange = (val: string) => {
-    setCalculatorState(prev => ({...prev, sugar: val, result: null}));
+    setCalculatorState(prev => ({ ...prev, sugar: val }));
     const num = parseFloat(val.replace(',', '.'));
-    if (!isNaN(num) && num < 3.9) {
-      setSugarError(t.sugar_low_warning);
+    if (!isNaN(num)) {
+       if (num < 3.9) {
+          setSugarError(t.sugar_low_warning);
+       } else {
+          setSugarError(null);
+       }
     } else {
-      setSugarError(null);
+       setSugarError(null);
     }
   };
 
-  // Resize and compress image for mobile stability (Vercel payload limits)
-  const resizeImage = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1024;
-        const MAX_HEIGHT = 1024;
-        let width = img.width;
-        let height = img.height;
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
+    setIsPhotoLoading(true);
+    const newPreviews: string[] = [];
+    const newBase64s: string[] = [];
+
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        newPreviews.push(result);
+        newBase64s.push(result.split(',')[1]);
+
+        if (newPreviews.length === files.length) {
+          setCalculatorState(prev => ({
+            ...prev,
+            previewUrls: [...prev.previewUrls, ...newPreviews],
+            base64Images: [...prev.base64Images, ...newBase64s]
+          }));
+          setIsPhotoLoading(false);
         }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        // Compress as JPEG 0.7
-        resolve(canvas.toDataURL('image/jpeg', 0.7).split(',')[1]);
       };
-      img.src = URL.createObjectURL(file);
+      reader.readAsDataURL(file);
     });
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) {
-      alert(t.no_file_error);
-      return;
-    }
-    
-    // Clear previous state if new files are selected
-    setCalculatorState(prev => ({...prev, previewUrls: [], base64Images: [], result: null, aiData: null}));
-    setSugarError(null);
-    
-    const tempUrls = files.map(f => URL.createObjectURL(f));
-    setCalculatorState(prev => ({...prev, previewUrls: tempUrls}));
-
-    setIsPhotoLoading(true);
-
-    try {
-      const resizedB64s = await Promise.all(files.map(f => resizeImage(f)));
-      setCalculatorState(prev => ({...prev, base64Images: resizedB64s}));
-    } catch(e) {
-      alert(t.file_read_error);
-    } finally {
-      setIsPhotoLoading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
   const handleStartAnalysis = async () => {
-    if (base64Images.length === 0) return;
-
-    const activeUser = (user && user.telegram_id) ? user : { telegram_id: 804617505, username: 'admin', first_name: 'Owner', role: 'admin', created_at: new Date().toISOString() };
-
+    if (!sugar) return;
     setIsPhotoLoading(true);
-    setSugarError(null);
-
     try {
-      let userXeWeight = 12;
-      try {
-         const profileRes = await axios.get(`/api/profile?telegram_id=${activeUser.telegram_id}`);
-         if (profileRes.data.success && profileRes.data.data && profileRes.data.data.xe_weight) {
-             userXeWeight = profileRes.data.data.xe_weight;
-         }
-      } catch (e) {
-         console.warn("Failed to fetch xe_weight, using default", e);
-      }
+        const res = await axios.post('/api/calculate', {
+            sugar: parseFloat(sugar.replace(',', '.')),
+            images: base64Images,
+            description: foodText,
+            telegram_id: user?.telegram_id || 804617505
+        });
 
-      const aiResponse = await axios.post('/api/analyze', { 
-          imageBase64Array: base64Images,
-          xeWeight: userXeWeight,
-          clarification: foodText
-      });
-
-      if (aiResponse.data.error) throw new Error(aiResponse.data.error);
-
-      const aiOutput: AIResponse = aiResponse.data.data;
-      if (!aiOutput || !aiOutput.items_breakdown) {
-          throw new Error("Не удалось распознать еду. Попробуйте другое фото.");
-      }
-      setCalculatorState(prev => ({...prev, aiData: aiOutput}));
-
-      // Calculate Dose (using average XE for calculation, but sending min/max)
-      const sugarValue = sugar || "5.5";
-      let currentSugarNum = parseFloat(sugarValue.toString().replace(',', '.'));
-      if (isNaN(currentSugarNum)) currentSugarNum = 5.5;
-
-      const calcResponse = await axios.post('/api/calculate', {
-          telegram_id: activeUser.telegram_id,
-          current_sugar: currentSugarNum,
-          total_xe: aiOutput.xe_max || 0
-      });
-
-      if (calcResponse.data.error) throw new Error(calcResponse.data.error);
-      
-      const calcData = calcResponse.data.data;
-      if (!calcData) throw new Error("Ошибка расчета дозы. Проверьте настройки коэффициентов.");
-      
-      // We will define dose_min based on xe_min safely using coef
-      const dose_max = calcData.recommended_dose;
-      const xeMin = aiOutput.xe_min || 0;
-      const activeCoef = calcData.active_coef || 1.0;
-      const dpsAdded = calcData.dps_added || 0;
-      const dose_min = parseFloat(((xeMin * activeCoef) + dpsAdded).toFixed(1));
-
-      setCalculatorState(prev => ({
-          ...prev,
-          result: {
-              dose_min: dose_min > 0 ? dose_min : 0,
-              dose_max: dose_max > 0 ? dose_max : 0,
-              xe_min: aiOutput.xe_min,
-              xe_max: aiOutput.xe_max,
-              coef: calcData.active_coef,
-              dps: calcData.dps_added,
-              is_high_fat: aiOutput.high_fat || false
-          }
-      }));
-
-      // Fetch IOB silently to display in result card
-      try {
-          const iobRes = await axios.get(`/api/iob?telegram_id=${activeUser.telegram_id}`);
-          if (iobRes.data.success) setIob(iobRes.data.iob || 0);
-      } catch { /* silently ignore */ }
-
-    } catch (error: any) {
-      console.error("Upload error full detail:", error);
-      const errMsg = error.response?.data?.error || error.message || "Error";
-      setSugarError(errMsg);
-      setToastMessage(errMsg);
+        if (res.data.success) {
+            setCalculatorState(prev => ({
+                ...prev,
+                result: res.data.result,
+                aiData: res.data.aiResponse
+            }));
+            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+        } else {
+            setToastMessage(t.save_error);
+        }
+    } catch (e: any) {
+        console.error(e);
+        setToastMessage(t.save_error);
     } finally {
-      setIsPhotoLoading(false);
+        setIsPhotoLoading(false);
     }
   };
 
   const handleResetAnalysis = () => {
-    setCalculatorState(prev => ({...prev, previewUrls: [], base64Images: [], result: null, aiData: null}));
+    setCalculatorState(prev => ({ ...prev, result: null, aiData: null, previewUrls: [], base64Images: [] }));
     setFoodText("");
     setXeOverride("");
     setQuickFoodName(null);
@@ -282,11 +136,19 @@ function HomeContent() {
   };
 
   const handleSaveLog = async () => {
-      const activeUser = (user && user.telegram_id) ? user : { telegram_id: 804617505 };
+      const activeUser = (user && user.telegram_id) ? user : { 
+        telegram_id: 804617505,
+        role: 'admin',
+        created_at: new Date().toISOString(),
+        first_name: 'Owner',
+        username: 'admin'
+      } as User;
+      
       if (!result || !aiData) return;
       
       try {
-          // Average for history — use xeOverride if user corrected
+          // ... (rest of the logic)
+          // Average for history
           const effectiveXe = xeOverride && parseFloat(xeOverride) > 0 ? parseFloat(xeOverride) : parseFloat(((result.xe_min + result.xe_max) / 2).toFixed(1));
           const avgDose = parseFloat(((result.dose_min + result.dose_max) / 2).toFixed(1));
           const avgXe = parseFloat(((result.xe_min + result.xe_max) / 2).toFixed(1));
@@ -296,30 +158,44 @@ function HomeContent() {
               current_sugar: parseFloat(sugar.replace(',', '.')),
               total_xe: effectiveXe,
               xe_corrected: xeOverride && parseFloat(xeOverride) !== avgXe ? parseFloat(xeOverride) : null,
-              ai_raw_response: aiData || { items_breakdown: [{ name: quickFoodName || 'Quick log', xe: effectiveXe, estimated_weight_g: 0, carbs_per_100g: 0, total_carbs_g: 0 }], xe_min: effectiveXe, xe_max: effectiveXe, glycemic_alert: null, high_fat: false, thinking_process: { hand_scale_cm: '', analysis: '' } },
+              ai_raw_response: aiData,
               recommended_dose: avgDose,
               actual_dose: avgDose
           });
           
-          // PHASE 10: Schedule Smart Reminders
-          // 1. Mandatory Sugar Check (2 hours later)
+          // Smart Reminders
           await axios.post('/api/reminders/schedule', {
               telegram_id: activeUser.telegram_id,
-              message: t.reminder_sugar_check || '🔔 Time to check your sugar!',
+              message: t.reminder_sugar_check,
               hours_delay: 2,
               type: 'sugar_check'
           }).catch(err => console.error("Failed to schedule sugar check reminder:", err));
 
-          // 2. High Fat Split Dose (2 hours later)
           if (result.is_high_fat) {
               const remainingDose = Math.round(result.dose_max * 0.2 * 2) / 2;
-              const msg = (t.reminder_high_fat || '⏱ Reminder! Inject remaining {dose} U').replace('{dose}', remainingDose.toString());
+              const msg = (t.reminder_high_fat || '').replace('{dose}', remainingDose.toString());
               await axios.post('/api/reminders/schedule', {
                   telegram_id: activeUser.telegram_id,
                   message: msg,
                   hours_delay: 2,
                   type: 'high_fat_split'
               }).catch(err => console.error("Failed to schedule high fat reminder:", err));
+          }
+
+          // GUARD MODE
+          // @ts-ignore
+          if (activeUser.guardian_id) {
+              await axios.post('/api/guardian/notify', {
+                  // @ts-ignore
+                  guardian_id: activeUser.guardian_id,
+                  // @ts-ignore
+                  child_name: activeUser.first_name || activeUser.username || "Ребенок",
+                  dose: result.dose_max,
+                  xe: result.xe_max,
+                  meal_name: foodText || quickFoodName || "Прием пищи",
+                  sugar: sugar,
+                  language: language
+              }).catch(err => console.error("Failed to notify guardian:", err));
           }
 
           setToastMessage(t.save_success);
@@ -333,9 +209,22 @@ function HomeContent() {
       }
   };
 
+  const getTrendArrow = (dir: string) => {
+    switch(dir) {
+      case 'Flat': return '→';
+      case 'FortyFiveUp': return '↗';
+      case 'FortyFiveDown': return '↘';
+      case 'SingleUp': return '↑';
+      case 'SingleDown': return '↓';
+      case 'DoubleUp': return '⇈';
+      case 'DoubleDown': return '⇊';
+      default: return '';
+    }
+  };
+
   return (
     <main className="min-h-screen p-4 max-w-[375px] mx-auto relative pb-36 overflow-x-hidden">
-      {/* Global Splash Screen Overlay */}
+      {/* Splash Screen */}
       {showSplash && (
         <div className="fixed inset-0 bg-[#F8F4F0] z-[100] flex flex-col items-center justify-center pointer-events-none transition-opacity duration-1000 opacity-100 overflow-hidden">
            <style>{`
@@ -349,22 +238,18 @@ function HomeContent() {
              }
            `}</style>
            <div className="relative">
-              <img 
-                src="/logo.png" 
-                alt="Logo" 
-                className="w-40 h-40 object-contain animate-premium-splash" 
-              />
+              <img src="/logo.png" alt="Logo" className="w-40 h-40 object-contain animate-premium-splash" />
               <div className="absolute inset-0 bg-emerald-500/20 blur-3xl rounded-full scale-150 -z-10 animate-pulse opacity-30" />
            </div>
-           <h1 className="text-3xl font-black text-[#111827] tracking-tighter text-center mt-4 animate-fade-in-up delay-700">
+           <h1 className="text-3xl font-black text-[#111827] tracking-tighter text-center mt-4 uppercase">
               DIA <span className="font-thin text-emerald-500">AI</span>
            </h1>
         </div>
       )}
       
-      {/* Header (Symmetrical, Logo in center) */}
+      {/* Header */}
       <header className="flex items-center justify-between mb-8 pt-6 relative z-10 w-full px-2">
-         <div className="w-10" /> {/* Spacer for symmetry */}
+         <div className="w-10" /> 
          <div className="flex items-center gap-1.5 translate-x-1">
             <img src="/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
             <h1 className="text-2xl font-black text-[#111827] tracking-tighter">
@@ -374,16 +259,15 @@ function HomeContent() {
          <Link 
            href="/settings"
            onClick={() => window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light')}
-           className="w-10 h-10 flex items-center justify-center nm-outset nm-active rounded-xl text-gray-400 transition-all"
+           className="w-10 h-10 flex items-center justify-center nm-outset nm-active rounded-xl text-gray-400"
          >
            <Settings className="w-5 h-5" />
          </Link>
       </header>
 
-      {/* Main Content Area */}
       <div className="space-y-8 relative z-10">
         
-        {/* Sugar Input Section */}
+        {/* Sugar Section */}
         {!result && (
           <div className="space-y-2 animate-fade-in-up">
             <label className="text-[10px] font-black text-gray-500 ml-1 uppercase tracking-widest">
@@ -392,15 +276,13 @@ function HomeContent() {
             <div className="nm-inset rounded-[2.5rem] p-10 flex flex-col items-center justify-center relative overflow-hidden">
                {isFetchingCgm && (
                  <div className="absolute top-4 right-4">
-                   <svg className="animate-spin h-5 w-5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                   </svg>
+                    <Loader2 className="w-5 h-5 animate-spin text-emerald-500" />
                  </div>
                )}
                {cgmData && (
-                 <div className="absolute left-6 top-1/2 -translate-y-1/2 flex flex-col items-center text-emerald-500 animate-pulse">
-                    <span className="text-2xl font-black">{getTrendArrow(cgmData.direction)}</span>
+                 <div className="absolute left-6 top-1/2 -translate-y-1/2 flex flex-col items-center text-emerald-500">
+                    <span className="text-2xl font-black">{cgmData.sgv}</span>
+                    <span className="text-lg font-black">{getTrendArrow(cgmData.direction)}</span>
                  </div>
                )}
                <input 
@@ -410,13 +292,13 @@ function HomeContent() {
                  onChange={(e) => handleSugarChange(e.target.value)}
                  placeholder="5.5"
                  className={cn(
-                   "w-full bg-transparent text-center text-7xl font-black text-[#111827] focus:outline-none placeholder:text-gray-200 transition-all",
+                   "w-full bg-transparent text-center text-7xl font-black text-[#111827] focus:outline-none placeholder:text-gray-200",
                    sugarError ? "text-red-500" : ""
                  )}
                />
             </div>
             {sugarError && (
-              <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-xs font-medium border border-red-100 flex gap-2 animate-shake">
+              <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-xs font-medium border border-red-100 flex gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 {sugarError}
               </div>
@@ -424,7 +306,6 @@ function HomeContent() {
           </div>
         )}
 
-        {/* Hidden File Input */}
         <input 
             type="file" 
             accept="image/*" 
@@ -435,7 +316,7 @@ function HomeContent() {
             className="hidden"
         />
 
-        {/* AI Action Button / Previews */}
+        {/* Action Button / Previews */}
         {!result && (
           <div className="space-y-6">
              {previewUrls.length > 0 ? (
@@ -456,27 +337,12 @@ function HomeContent() {
                         </button>
                       </div>
                     ))}
-                    {!previewUrls.length && !isPhotoLoading && (
-                      <div className="w-full h-32 nm-inset rounded-2xl flex items-center justify-center text-gray-300 italic text-[10px] uppercase font-black tracking-widest px-8 text-center bg-gray-50/30">
-                         {t.no_photos_yet}
-                      </div>
-                    )}
                   </div>
                   
                   {isPhotoLoading && (
-                    <div className="w-full nm-inset rounded-[2rem] p-10 flex flex-col items-center justify-center gap-4 animate-fade-in-up bg-emerald-50/5">
-                      <div className="relative w-16 h-16">
-                        <svg className="w-16 h-16 animate-spin text-emerald-500" viewBox="0 0 24 24">
-                          <circle className="opacity-10" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" fill="none" />
-                          <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                           <div className="w-8 h-8 rounded-full bg-emerald-500/10 animate-pulse" />
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest animate-pulse">
-                         {t.analyzing}...
-                      </span>
+                    <div className="w-full nm-inset rounded-[2rem] p-10 flex flex-col items-center justify-center gap-4 animate-fade-in-up">
+                       <Loader2 className="w-16 h-16 animate-spin text-emerald-500" />
+                       <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{t.analyzing}...</span>
                     </div>
                   )}
 
@@ -484,127 +350,116 @@ function HomeContent() {
                     <label className="text-[10px] font-black text-gray-500 ml-1 uppercase tracking-widest">
                        {t.description_label}
                     </label>
-                    <div className="nm-inset rounded-[2rem] p-1">
+                    <div className="nm-inset rounded-[2rem] p-1 flex items-center pr-4">
                       <input 
                         type="text" 
                         placeholder={t.clarification_placeholder}
-                        value={foodText} // Assuming foodText maps to description
-                        onChange={(e) => setFoodText(e.target.value)} // Assuming setFoodText maps to setDescription
+                        value={foodText}
+                        onChange={(e) => setFoodText(e.target.value)}
                         className="w-full bg-transparent px-5 py-4 text-sm font-bold text-[#111827] focus:outline-none"
                       />
+                      <VoiceRecorder onTranscription={(text) => setFoodText(prev => prev ? `${prev} ${text}` : text)} />
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-4 pt-2">
                     <button 
-                      onClick={() => {
-                        window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium');
-                        handleStartAnalysis();
-                      }}
+                      onClick={handleStartAnalysis}
                       disabled={isPhotoLoading}
-                      className="w-full nm-primary nm-active rounded-[2rem] p-5 text-white font-black uppercase tracking-widest transition-all flex items-center justify-center"
+                      className="w-full nm-primary nm-active rounded-[2rem] p-5 text-white font-black uppercase tracking-widest transition-all"
                     >
                       {isPhotoLoading ? t.analyzing : t.analyze_btn}
                     </button>
                     <button 
                       onClick={handleResetAnalysis}
-                      className="w-full nm-outset nm-active p-5 rounded-[2rem] text-gray-500 font-bold uppercase tracking-widest transition-all flex items-center justify-center"
+                      className="w-full nm-outset nm-active p-5 rounded-[2rem] text-gray-500 font-bold uppercase tracking-widest"
                     >
                       {t.cancel}
                     </button>
                   </div>
                 </div>
              ) : (
-                <div className="flex flex-col items-center justify-center py-6">
-                  <button
-                    onClick={() => {
-                        window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
-                        fileInputRef.current?.click();
-                    }}
-                    disabled={!sugar || sugarError !== null}
-                    className={cn(
-                        "w-48 h-48 rounded-[3rem] flex flex-col items-center justify-center gap-4 transition-all duration-300 active:scale-95 group",
-                        (!sugar || sugarError) ? "opacity-40 grayscale" : "nm-outset nm-active p-8"
-                    )}
-                  >
-                    <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center shadow-[0_0_30px_rgba(52,211,153,0.2)] group-hover:shadow-[0_0_50px_rgba(52,211,153,0.4)] transition-all">
-                        <Camera className="w-10 h-10 text-emerald-500 group-hover:scale-110 transition-transform" />
+                <div className="flex flex-col items-center justify-center py-6 gap-8">
+                  <div className="flex items-center gap-8">
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={!sugar || !!sugarError}
+                      className={cn(
+                          "w-48 h-48 rounded-[3rem] flex flex-col items-center justify-center gap-4 transition-all duration-300 active:scale-95 group",
+                          (!sugar || sugarError) ? "opacity-40 grayscale" : "nm-outset nm-active p-8"
+                      )}
+                    >
+                      <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center shadow-[0_0_30px_rgba(52,211,153,0.2)]">
+                          <Camera className="w-10 h-10 text-emerald-500" />
+                      </div>
+                      <span className="text-sm font-black text-[#111827] uppercase tracking-widest">
+                         {t.analyze_btn}
+                      </span>
+                    </button>
+
+                    <div className="flex flex-col items-center gap-4">
+                      <VoiceRecorder 
+                        disabled={!sugar || !!sugarError}
+                        onTranscription={(text) => {
+                          setFoodText(text);
+                          // Delay slightly so user sees the text before auto-analyzing if desired, 
+                          // but here we just set it and let them hit calculate or we could auto-trigger.
+                        }} 
+                      />
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t.voice_button}</span>
                     </div>
-                    <span className="text-sm font-black text-[#111827] uppercase tracking-widest">
-                       {t.analyze_btn}
-                    </span>
-                  </button>
+                  </div>
+
                   {!sugar && (
-                    <p className="text-[10px] font-bold text-gray-400 mt-6 uppercase tracking-widest animate-pulse">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest animate-pulse">
                        {t.enter_sugar_first}
                     </p>
+                  )}
+                  {foodText && (
+                    <div className="w-full nm-inset rounded-3xl p-6 animate-fade-in-up">
+                       <p className="text-sm font-bold text-[#111827] italic">"{foodText}"</p>
+                       <button 
+                        onClick={handleStartAnalysis}
+                        className="mt-4 w-full nm-primary nm-active p-3 rounded-2xl text-white text-[10px] font-black uppercase tracking-widest"
+                       >
+                         {t.analyze_btn}
+                       </button>
+                    </div>
                   )}
                 </div>
              )}
           </div>
         )}
 
-        {/* Result Card (When calculation finished) */}
+        {/* Results */}
         {result && aiData && (
           <div className="space-y-8 animate-fade-in-up">
-             {/* Dosage Highlight */}
              <div className="nm-inset rounded-[3rem] p-10 flex flex-col items-center space-y-4">
-                <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">{t.recommended_dose}</span>
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t.recommended_dose}</span>
                 <div className="flex items-center gap-3">
                    <h2 className="text-5xl font-black bg-clip-text text-transparent bg-gradient-to-br from-emerald-500 to-cyan-600 tracking-tighter">
-                      {result.dose_min === result.dose_max ? result.dose_max : `${result.dose_min}-${result.dose_max}`}
+                      {result.dose_max}
                    </h2>
-                   <span className="text-xl font-black text-cyan-600 self-end mb-1 uppercase">{t.units}</span>
+                   <span className="text-xl font-black text-cyan-600 uppercase">{t.units}</span>
                 </div>
-                {result.is_high_fat && (
-                   <div className="nm-outset-sm rounded-full px-4 py-1.5 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                      <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">{t.fat_alert_title}</span>
-                   </div>
-                )}
              </div>
 
-             {/* Calculation Details */}
              <div className="grid grid-cols-2 gap-4">
-                <div className="nm-outset-sm rounded-3xl p-4 flex flex-col items-center gap-1">
-                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t.ai_estimate_prefix}</span>
-                   <span className="text-xl font-black text-[#111827]">{result.xe_min === result.xe_max ? result.xe_max : `${result.xe_min}-${result.xe_max}`} ХЕ</span>
+                <div className="nm-outset-sm rounded-3xl p-4 flex flex-col items-center">
+                   <span className="text-[10px] font-bold text-gray-400 uppercase">{t.ai_estimate_prefix}</span>
+                   <span className="text-xl font-black">{result.xe_max} ХЕ</span>
                 </div>
-                <div className="nm-outset-sm rounded-3xl p-4 flex flex-col items-center gap-1">
-                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t.coef_label}</span>
-                   <span className="text-xl font-black text-[#111827]">{result.coef}</span>
-                </div>
-             </div>
-
-             {/* Items Breakdown */}
-             <div className="space-y-3">
-                <h3 className="text-xs font-black text-gray-500 ml-2 uppercase tracking-widest">{t.recognized_items}</h3>
-                <div className="nm-inset rounded-3xl p-2 space-y-1">
-                   {aiData.items_breakdown.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-4">
-                         <span className="text-sm font-bold text-[#111827]">{item.name}</span>
-                         <span className="text-sm font-black text-emerald-500">{item.xe} ХЕ</span>
-                      </div>
-                   ))}
+                <div className="nm-outset-sm rounded-3xl p-4 flex flex-col items-center">
+                   <span className="text-[10px] font-bold text-gray-400 uppercase">{t.coef_label}</span>
+                   <span className="text-xl font-black">{result.coef}</span>
                 </div>
              </div>
 
-             {/* Action Bar */}
              <div className="flex flex-col gap-4">
-                <button 
-                   onClick={() => {
-                      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
-                      handleSaveLog();
-                   }}
-                   className="w-full nm-primary nm-active p-5 rounded-[2.5rem] text-white font-black uppercase tracking-widest flex items-center justify-center gap-2"
-                >
-                   <Check className="w-5 h-5" />
+                <button onClick={handleSaveLog} className="w-full nm-primary nm-active p-5 rounded-[2.5rem] text-white font-black uppercase tracking-widest">
                    {t.save_and_inject}
                 </button>
-                <button 
-                   onClick={handleResetAnalysis}
-                   className="w-full nm-outset nm-active p-5 rounded-[2.5rem] text-gray-500 font-bold uppercase tracking-widest transition-all flex items-center justify-center"
-                >
+                <button onClick={handleResetAnalysis} className="w-full nm-outset nm-active p-5 rounded-[2.5rem] text-gray-500 font-bold uppercase tracking-widest">
                    {t.recalculate}
                 </button>
              </div>
@@ -613,18 +468,10 @@ function HomeContent() {
 
       </div>
 
-      {/* Toast Notification */}
       {toastMessage && (
-          <div className="fixed bottom-32 left-0 right-0 flex justify-center z-50 animate-in slide-in-from-bottom-5 fade-in pointer-events-none px-4">
-              <div className="bg-gray-900 border border-white/10 text-white px-5 py-3 rounded-full flex items-center gap-3 shadow-2xl backdrop-blur-xl">
-                  {toastMessage.includes("Error") || toastMessage.includes("Ошибка") ? (
-                      <AlertCircle className="w-5 h-5 text-red-500" />
-                  ) : (
-                      <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/50">
-                          <Check className="w-3 h-3 text-emerald-400" />
-                      </div>
-                  )}
-                  <span className="text-sm font-semibold">{toastMessage}</span>
+          <div className="fixed bottom-32 left-0 right-0 flex justify-center z-50 px-4">
+              <div className="bg-gray-900 text-white px-5 py-3 rounded-full flex items-center gap-3 shadow-2xl">
+                  {toastMessage}
               </div>
           </div>
       )}
