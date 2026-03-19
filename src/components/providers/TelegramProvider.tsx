@@ -28,7 +28,7 @@ const TelegramContext = createContext<TelegramContextType>({
     user: null,
     calculatorState: defaultCalcState,
     setCalculatorState: () => {},
-    language: 'ru',
+    language: 'ua',
     setLanguage: () => {},
     t: translations.ru,
     showSplash: true,
@@ -37,10 +37,10 @@ const TelegramContext = createContext<TelegramContextType>({
 
 export const useUser = () => useContext(TelegramContext);
 
-export function TelegramProvider({ children }: { children: React.ReactNode }) {
+export function TelegramProvider({ children, defaultLanguage = 'ua' }: { children: React.ReactNode, defaultLanguage?: Language }) {
   const [user, setUser] = useState<User | null>(null);
   const [calculatorState, setCalculatorState] = useState<CalculatorState>(defaultCalcState);
-  const [language, setLanguage] = useState<Language>('ru');
+  const [language, setLanguage] = useState<Language>('ua');
   const [showSplash, setShowSplash] = useState(true);
   const [mounted, setMounted] = useState(false);
 
@@ -157,7 +157,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   if (!mounted) {
-    return <div className="min-h-screen bg-slate-950" />;
+    return <div className="min-h-screen bg-[#F8F4F0]" />;
   }
 
   return (

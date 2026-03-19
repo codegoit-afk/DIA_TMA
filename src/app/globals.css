@@ -26,10 +26,10 @@
 }
 
 :root {
-  --background: #030712; /* Deepest tailwind gray-950/black */
-  --foreground: #f8fafc;
-  --glass-border: rgba(255, 255, 255, 0.05);
-  --glass-bg: rgba(255, 255, 255, 0.02);
+  --background: #F8F4F0;
+  --foreground: #111827;
+  --nm-shadow-light: #FFFFFF;
+  --nm-shadow-dark: rgba(214, 210, 206, 0.82);
 }
 
 body {
@@ -37,8 +37,35 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  background-image: 
-    radial-gradient(circle at 10% 20%, rgba(52, 211, 153, 0.03), transparent 25%),
-    radial-gradient(circle at 90% 80%, rgba(34, 211, 238, 0.03), transparent 25%);
-  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* Neumorphic Utility Classes */
+.nm-outset {
+  background: var(--background);
+  box-shadow: 8px 8px 16px var(--nm-shadow-dark), 
+              -8px -8px 16px var(--nm-shadow-light);
+}
+
+.nm-inset {
+  background: var(--background);
+  box-shadow: inset 8px 8px 16px var(--nm-shadow-dark), 
+              inset -8px -8px 16px var(--nm-shadow-light);
+}
+
+.nm-outset-sm {
+  background: var(--background);
+  box-shadow: 4px 4px 8px var(--nm-shadow-dark), 
+              -4px -4px 8px var(--nm-shadow-light);
+}
+
+.nm-inset-sm {
+  background: var(--background);
+  box-shadow: inset 4px 4px 8px var(--nm-shadow-dark), 
+              inset -4px -4px 8px var(--nm-shadow-light);
+}
+
+.nm-active:active {
+  box-shadow: 3px 3px 6px var(--nm-shadow-dark), 
+              -3px -3px 6px var(--nm-shadow-light);
 }

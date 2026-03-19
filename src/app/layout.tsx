@@ -19,22 +19,19 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
+import { Navigation } from "@/components/Navigation";
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru">
-      <head>
-        <Script 
-          src="https://telegram.org/js/telegram-web-app.js" 
-          strategy="beforeInteractive" 
-        />
-      </head>
-      <body className={`${inter.className} bg-slate-950 text-slate-50 min-h-screen pb-20`}>
-        <TelegramProvider>
+    <html lang="ua" suppressHydrationWarning>
+      <body className={inter.className} style={{ background: '#F8F4F0', color: '#111827' }}>
+        <TelegramProvider defaultLanguage="ua">
           {children}
+          <Navigation />
         </TelegramProvider>
       </body>
     </html>

@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Clock, Syringe, Camera } from "lucide-react";
+import { ArrowLeft, Clock, Syringe, Camera, History as HistoryIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ru, uk, enUS } from "date-fns/locale";
 import { FoodLog } from "@/types";
 import { useUser } from "@/components/providers/TelegramProvider";
+import { cn } from "@/lib/utils/utils";
 import { useEffect, useState } from "react";
 import axios from "axios";
 
@@ -36,6 +37,18 @@ export default function LogsPage() {
     }
     fetchLogs();
   }, [user]);
+
+  useEffect(() => {
+    // Show BackButton on subpages
+    // @ts-ignore
+    const WebApp = window.Telegram?.WebApp;
+    if (WebApp) {
+      WebApp.BackButton.show();
+      WebApp.BackButton.onClick(() => {
+          window.location.href = '/';
+      });
+    }
+  }, []);
   
   const getLocale = () => {
     switch(language) {
@@ -46,104 +59,98 @@ export default function LogsPage() {
   };
 
   return (
-    <main className="min-h-screen p-4 max-w-md mx-auto pb-24 relative overflow-hidden">
-      {/* Background Decorative Blob */}
-      <div className="absolute top-20 left-0 -ml-20 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none" />
-
+    <main className="min-h-screen p-4 max-w-[375px] mx-auto pb-32 relative bg-[#F8F4F0]">
       {/* Header */}
-      <header className="flex items-center gap-4 mb-8 pt-4 relative z-10 w-full">
-        <Link 
-            href="/" 
-            onClick={() => window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light')}
-            className="p-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-full text-gray-400 hover:text-white transition-all shadow-lg hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]"
-        >
-          <ArrowLeft className="w-6 h-6" />
-        </Link>
-        <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 tracking-tight">{t.logs_title}</h1>
+      <header className="flex items-center justify-between mb-8 pt-6 relative z-10 w-full px-2">
+         <Link 
+           href="/"
+           onClick={() => window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light')}
+           className="w-10 h-10 flex items-center justify-center nm-outset nm-active rounded-xl text-gray-400 transition-all"
+         >
+           <ArrowLeft className="w-5 h-5" />
+         </Link>
+         <h1 className="text-xl font-black text-[#111827] tracking-tight uppercase">
+            {t.history}
+         </h1>
+         <div className="w-10" />
       </header>
 
-      <div className="relative z-10">
+      <div className="relative z-10 space-y-6">
         
         {loading ? (
-             <div className="space-y-6 pl-8 relative">
-                {/* Skeleton Timeline Line */}
-                <div className="absolute left-3 top-2 bottom-0 w-[2px] bg-white/5" />
-                
-                {[1,2,3].map(i => (
-                    <div key={i} className="relative animate-pulse">
-                        <div className="absolute -left-[1.6rem] top-2 w-3 h-3 rounded-full bg-white/10" />
-                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 h-32" />
-                    </div>
-                ))}
-             </div>
+           <div className="space-y-6">
+              {[1,2,3].map(i => (
+                  <div key={i} className="nm-outset rounded-[2rem] p-6 h-32 animate-pulse" />
+              ))}
+           </div>
         ) : (
-          <div className="space-y-6 relative pl-8">
-            {/* Timeline Vertical Line */}
-            {logs.length > 0 && <div className="absolute left-3 top-4 bottom-8 w-[2px] bg-white/5" />}
-
+          <div className="space-y-6">
             {logs.map((log, idx) => {
                 const isHigh = log.current_sugar > 7.8;
                 const isLow = log.current_sugar < 4.0;
-                const statusColor = isHigh ? "bg-amber-500" : isLow ? "bg-red-500" : "bg-emerald-500";
-                const statusShadow = isHigh ? "shadow-[0_0_10px_rgba(245,158,11,0.5)]" : isLow ? "shadow-[0_0_10px_rgba(239,68,68,0.5)]" : "shadow-[0_0_10px_rgba(16,185,129,0.5)]";
-
+                
                 return (
-                  <div key={log.id} className="relative animate-fade-in-up" style={{ animationDelay: `${idx * 100}ms` }}>
+                  <div key={log.id} className="nm-outset rounded-[2.5rem] p-6 animate-fade-in-up relative overflow-hidden" style={{ animationDelay: `${idx * 100}ms` }}>
                     
-                    {/* Timeline Dot */}
-                    <div className={`absolute -left-[1.65rem] top-6 w-3.5 h-3.5 rounded-full ${statusColor} ${statusShadow} border-2 border-[#030712] z-10`} />
-                    {/* Log Card */}
-                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 shadow-2xl relative overflow-hidden transition-all hover:bg-white/10 hover:border-white/20">
+                    {/* Status accent */}
+                    <div className={cn(
+                        "absolute top-0 right-0 w-1.5 h-full opacity-30",
+                        isHigh ? "bg-amber-500" : isLow ? "bg-red-500" : "bg-emerald-500"
+                    )} />
+
+                    {/* Top row: Time & Sugar Badge */}
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center gap-1.5 text-gray-400 text-[10px] font-black tracking-widest uppercase">
+                        <Clock className="w-3.5 h-3.5 text-gray-400" />
+                        <span>{format(new Date(log.created_at), 'd MMM, HH:mm', { locale: getLocale() })}</span>
+                      </div>
                       
-                      {/* Top row: Time & Sugar Badge */}
-                      <div className="flex justify-between items-center mb-4">
-                        <div className="flex items-center gap-1.5 text-gray-400 text-xs font-bold tracking-widest uppercase">
-                          <Clock className="w-4 h-4 text-gray-500" />
-                          <span>{format(new Date(log.created_at), 'd MMM, HH:mm', { locale: getLocale() })}</span>
-                        </div>
-                        
-                        <div className={`px-2.5 py-1 rounded-lg text-xs font-black tracking-wide border ${
-                          isHigh ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
-                          isLow ? 'bg-red-500/10 text-red-400 border-red-500/30' :
-                          'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                        }`}>
-                          {log.current_sugar} ммоль
-                        </div>
+                      <div className={cn(
+                        "nm-inset rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest",
+                        isHigh ? "text-amber-600" : isLow ? "text-red-600" : "text-emerald-600"
+                      )}>
+                        {log.current_sugar} ммоль
                       </div>
-
-                      {/* Middle row: XE and Badges */}
-                      <div className="flex items-end justify-between mb-4">
-                        <div className="flex flex-col">
-                          <div className="flex items-baseline gap-1.5">
-                              <span className="text-3xl font-black text-white leading-none">{log.total_xe}</span>
-                              <span className="text-sm font-bold text-gray-500">ХЕ</span>
-                          </div>
-                          <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mt-1">{t.carbs_label}</span>
-                        </div>
-                      </div>
-
-                      {/* Bottom row: Insulin dose Badge */}
-                      <div className="pt-4 border-t border-white/5 flex justify-between items-center">
-                        <div className="bg-cyan-500/10 border border-cyan-500/20 px-3 py-1.5 rounded-xl flex items-center gap-2 text-cyan-400 shadow-inner">
-                          <Syringe className="w-4 h-4" />
-                          <span className="font-extrabold text-sm tracking-wide">{log.actual_dose} ед.</span>
-                        </div>
-                        
-                        {log.recommended_dose !== log.actual_dose && log.recommended_dose && (
-                           <span className="text-[10px] uppercase tracking-widest font-bold text-gray-500 bg-black/20 px-2 py-1 rounded-md border border-white/5">
-                             {t.ai_suggested} {log.recommended_dose}
-                           </span>
-                        )}
-                      </div>
-
                     </div>
+
+                    {/* Middle row: XE and Dose */}
+                    <div className="flex items-center justify-between gap-4 py-2">
+                       <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t.carbs_label}</span>
+                          <div className="flex items-baseline gap-1">
+                             <span className="text-2xl font-black text-[#111827]">{log.total_xe}</span>
+                             <span className="text-xs font-bold text-gray-400">ХО</span>
+                          </div>
+                       </div>
+
+                       <div className="nm-inset rounded-2xl p-1 flex-1 max-w-[120px]">
+                          <div className="flex flex-col items-center py-2 bg-emerald-50/20 rounded-xl">
+                             <div className="flex items-center gap-1 text-emerald-600">
+                                <Syringe className="w-3.5 h-3.5" />
+                                <span className="text-xl font-black">{log.actual_dose}</span>
+                             </div>
+                             <span className="text-[8px] font-black text-emerald-500 uppercase tracking-tighter">{t.units}</span>
+                          </div>
+                       </div>
+                    </div>
+
+                    {/* Suggestions (if different) */}
+                    {log.recommended_dose !== log.actual_dose && log.recommended_dose && (
+                       <div className="mt-4 pt-4 border-t border-gray-50 flex justify-center">
+                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest opacity-60">
+                             {t.ai_suggested} {log.recommended_dose}
+                          </span>
+                       </div>
+                    )}
+
                   </div>
                 );
             })}
 
             {logs.length === 0 && (
-              <div className="text-center py-12 text-gray-500 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl">
-                <p className="font-bold tracking-widest uppercase text-sm">{t.history_empty}</p>
+              <div className="nm-inset rounded-[2.5rem] p-12 text-center text-gray-400 flex flex-col items-center gap-4">
+                <HistoryIcon className="w-12 h-12 opacity-20" />
+                <p className="font-black uppercase tracking-widest text-xs opacity-40">{t.history_empty}</p>
               </div>
             )}
           </div>

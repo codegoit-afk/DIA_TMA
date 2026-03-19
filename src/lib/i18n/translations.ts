@@ -9,7 +9,11 @@ export const translations = {
     settings: "Настройки",
     
     // Home tab
+    language_label: "Выберите язык",
     current_sugar: "Текущий сахар (ммоль/л)",
+    food_name_label: "Название блюда",
+    food_xe_label: "Количество ХЕ",
+    description_label: "Описание (опционально)",
     sugar_placeholder: "5.5",
     sugar_low_warning: "Опасно низкий сахар! Сначала съешь 1-2 ХЕ быстрых углеводов, подожди 15 минут.",
     clarification_label: "Уточнение для ИИ (необязательно)",
@@ -19,6 +23,7 @@ export const translations = {
     analyzing: "Анализ...",
     take_photo_btn: "Сфотографировать еду",
     enter_sugar_first: "Сначала введите сахар",
+    recommended_dose: "Рекомендованная доза",
     
     // Results
     ai_estimate_prefix: "Нейросеть оценила в",
@@ -87,7 +92,20 @@ export const translations = {
     iob_note: "учтен в дозе",
     insulin_dia_label: "Длительность действия инсулина (DIA, ч)",
     analytics_title: "Аналитика",
-    analytics_nav: "Тренды"
+    analytics_nav: "Тренды",
+    avg_sugar: "Средний сахар",
+    avg_xe: "Средние ХЕ",
+    avg_dose: "Средняя доза",
+    tir_title: "Время в целевом диапазоне (TIR)",
+    tir_target_range: "Целевой диапазон: 3.9 – 10.0 ммоль/л",
+    daily_avg_title: "Средний сахар по дням",
+    export_title: "Экспорт для врача",
+    export_desc: "CSV-файл за последние {days} дней",
+    download_csv: "Скачать CSV",
+    no_data: "Нет данных",
+    no_data_desc: "Начни использовать калькулятор, чтобы здесь появились твои тренды",
+    days_7: "7 дней",
+    days_30: "30 дней"
   },
   ua: {
     app_title: "Калькулятор ХО",
@@ -97,7 +115,11 @@ export const translations = {
     settings: "Налаштування",
     
     // Home tab
+    language_label: "Оберіть мову",
     current_sugar: "Поточний цукор (ммоль/л)",
+    food_name_label: "Назва страви",
+    food_xe_label: "Кількість ХО",
+    description_label: "Опис (опціонально)",
     sugar_placeholder: "5.5",
     sugar_low_warning: "Небезпечно низький цукор! Спочатку з'їж 1-2 ХО швидких вуглеводів, почекай 15 хвилин.",
     clarification_label: "Уточнення для ШІ (необов'язково)",
@@ -107,6 +129,7 @@ export const translations = {
     analyzing: "Аналіз...",
     take_photo_btn: "Сфотографувати їжу",
     enter_sugar_first: "Спочатку введіть цукор",
+    recommended_dose: "Рекомендована доза",
     
     // Results
     ai_estimate_prefix: "ШІ оцінив у",
@@ -175,7 +198,20 @@ export const translations = {
     iob_note: "враховано в дозі",
     insulin_dia_label: "Тривалість дії інсуліну (DIA, г)",
     analytics_title: "Аналітика",
-    analytics_nav: "Тренди"
+    analytics_nav: "Тренди",
+    avg_sugar: "Середній цукор",
+    avg_xe: "Середні ХО",
+    avg_dose: "Середня доза",
+    tir_title: "Час у цільовому діапазоні (TIR)",
+    tir_target_range: "Цільовий діапазон: 3.9 – 10.0 ммоль/л",
+    daily_avg_title: "Середній цукор по днях",
+    export_title: "Експорт для лікаря",
+    export_desc: "CSV-файл за останні {days} днів",
+    download_csv: "Завантажити CSV",
+    no_data: "Немає даних",
+    no_data_desc: "Почни використовувати калькулятор, щоб тут з'явилися твої тренди",
+    days_7: "7 днів",
+    days_30: "30 днів"
   },
   en: {
     app_title: "Carb Calculator",
@@ -185,7 +221,11 @@ export const translations = {
     settings: "Settings",
     
     // Home tab
+    language_label: "Choose Language",
     current_sugar: "Current Blood Sugar (mmol/L)",
+    food_name_label: "Food Name",
+    food_xe_label: "XE Amount",
+    description_label: "Description (optional)",
     sugar_placeholder: "5.5",
     sugar_low_warning: "Dangerously low! Eat fast-acting carbs (15g) and wait 15 mins.",
     clarification_label: "Refinement for AI (optional)",
@@ -195,6 +235,7 @@ export const translations = {
     analyzing: "Analyzing...",
     take_photo_btn: "Take Photo of Food",
     enter_sugar_first: "Enter Blood Sugar First",
+    recommended_dose: "Recommended Dose",
     
     // Results
     ai_estimate_prefix: "AI Estimated:",
@@ -263,6 +304,19 @@ export const translations = {
     iob_note: "factored in dose",
     insulin_dia_label: "Insulin Duration of Action (DIA, h)",
     analytics_title: "Analytics",
-    analytics_nav: "Trends"
+    analytics_nav: "Trends",
+    avg_sugar: "Avg Sugar",
+    avg_xe: "Avg XE",
+    avg_dose: "Avg Dose",
+    tir_title: "Time in Range (TIR)",
+    tir_target_range: "Target Range: 3.9 – 10.0 mmol/L",
+    daily_avg_title: "Daily Avg Sugar",
+    export_title: "Export for Doctor",
+    export_desc: "CSV file for the last {days} days",
+    download_csv: "Download CSV",
+    no_data: "No data",
+    no_data_desc: "Start using the calculator to see your trends here",
+    days_7: "7 days",
+    days_30: "30 days"
   }
 };

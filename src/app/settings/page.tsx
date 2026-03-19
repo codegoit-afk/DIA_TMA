@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Save, Plus, Trash2, ShieldCheck, ChevronRight } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, ShieldCheck, ChevronRight, Settings, TrendingUp, Syringe } from "lucide-react";
 import { CoefMatrixRow } from "@/types";
 import { useUser } from "@/components/providers/TelegramProvider";
+import { cn } from "@/lib/utils/utils";
 import axios from "axios";
 
 declare global {
@@ -14,7 +15,7 @@ declare global {
 }
 
 export default function SettingsPage() {
-  const { t, user } = useUser();
+  const { t, user, language, setLanguage } = useUser();
   const [hypoThreshold, setHypoThreshold] = useState("3.9");
   const [targetSugar, setTargetSugar] = useState("5.5");
   const [xeWeight, setXeWeight] = useState("12");
@@ -29,7 +30,6 @@ export default function SettingsPage() {
   const [insulinDia, setInsulinDia] = useState("4");
 
   const [isAdmin, setIsAdmin] = useState(false);
-
   const [matrix, setMatrix] = useState<CoefMatrixRow[]>([
     { min: 1.0, max: 8.0, coef: 2.0 },
     { min: 8.1, max: 15.0, coef: 1.5 },
@@ -88,6 +88,9 @@ export default function SettingsPage() {
     const WebApp = window.Telegram?.WebApp;
     if (WebApp) {
       WebApp.BackButton.show();
+      WebApp.BackButton.onClick(() => {
+          window.location.href = '/';
+      });
     }
   }, []);
 
@@ -106,220 +109,262 @@ export default function SettingsPage() {
           nightscout_url: nightscoutUrl,
           nightscout_token: nightscoutToken
         },
-        insulin_dia: parseFloat(insulinDia)
+        insulin_dia: parseFloat(insulinDia),
+        language: language // Save language preference too
       });
       if (res.data.success) {
-        // Use custom snackbar instead of alert if possible, else standard alert for now
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-        }
-        alert(t.save_success || "Настройки успешно сохранены!");
+        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+        alert(t.save_success || "Збережено!");
       }
     } catch (e) {
       console.error(e);
-      alert("Ошибка при сохранении настроек.");
+      alert("Error saving settings.");
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <main className="min-h-screen p-4 max-w-md mx-auto pb-24 relative overflow-hidden">
-      {/* Background Decorative Blob */}
-      <div className="absolute top-40 right-0 -mr-20 w-64 h-64 bg-purple-500/10 rounded-full blur-[80px] pointer-events-none" />
-      <div className="absolute bottom-40 left-0 -ml-20 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
-
+    <main className="min-h-screen p-4 max-w-[375px] mx-auto pb-32 relative bg-[#F8F4F0]">
       {/* Header */}
-      <header className="flex items-center gap-4 mb-8 pt-4 relative z-10">
-        <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors text-slate-300 backdrop-blur-sm">
-          <ArrowLeft className="w-6 h-6" />
-        </Link>
-        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400 tracking-tight">{t.settings}</h1>
+      <header className="flex items-center justify-between mb-8 pt-6 relative z-10 w-full px-2">
+         <Link 
+           href="/"
+           onClick={() => window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light')}
+           className="w-10 h-10 flex items-center justify-center nm-outset nm-active rounded-xl text-gray-400 transition-all"
+         >
+           <ArrowLeft className="w-5 h-5" />
+         </Link>
+         <h1 className="text-xl font-black text-[#111827] tracking-tight uppercase">
+            {t.settings}
+         </h1>
+         <div className="w-10" />
       </header>
 
       <div className="space-y-8 relative z-10">
+        
+        {/* Language Selector */}
+        <section className="space-y-3 animate-fade-in-up">
+           <label className="text-xs font-black text-gray-500 ml-2 uppercase tracking-widest">{t.language_label || "Мова / Язык"}</label>
+           <div className="nm-inset rounded-3xl p-1.5 flex gap-1">
+              {(['ua', 'ru', 'en'] as const).map((lang) => (
+                <button
+                  key={lang}
+                  onClick={() => {
+                    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium');
+                    setLanguage(lang);
+                  }}
+                  className={cn(
+                    "flex-1 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
+                    language === lang 
+                      ? "nm-outset bg-[#F8F4F0] text-emerald-500 scale-100" 
+                      : "text-gray-400 opacity-60 hover:opacity-100"
+                  )}
+                >
+                  {lang === 'ua' ? 'Ukrainian' : lang === 'ru' ? 'Russian' : 'English'}
+                </button>
+              ))}
+           </div>
+        </section>
+
         {/* Basic Settings */}
-        <section className="space-y-4 bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl p-6 rounded-3xl animate-fade-in-up">
-          <h2 className="text-lg font-extrabold tracking-tight text-white border-b border-white/10 pb-3">{t.basic_settings}</h2>
+        <section className="space-y-6 nm-outset rounded-[2.5rem] p-6 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+          <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+             <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
+                <Settings className="w-4 h-4 text-emerald-500" />
+             </div>
+             <h2 className="text-sm font-black text-[#111827] uppercase tracking-wider">{t.basic_settings}</h2>
+          </div>
           
-          <div className="grid grid-cols-2 gap-5 pt-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-gray-500 tracking-wide">{t.hypo_threshold}</label>
-              <input 
-                type="number" step="0.1" value={hypoThreshold} onChange={(e) => setHypoThreshold(e.target.value)}
-                className="w-full bg-black/20 rounded-xl p-3 text-white text-xl font-bold border border-white/10 focus:ring-2 focus:ring-emerald-500/50 focus:outline-none transition-all"
-              />
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.hypo_threshold}</label>
+              <div className="nm-inset rounded-2xl p-0.5">
+                 <input 
+                   type="number" step="0.1" value={hypoThreshold} onChange={(e) => setHypoThreshold(e.target.value)}
+                   className="w-full bg-transparent p-3 text-center text-xl font-black text-[#111827] focus:outline-none"
+                 />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-gray-500 tracking-wide">{t.target_sugar}</label>
-              <input 
-                type="number" step="0.1" value={targetSugar} onChange={(e) => setTargetSugar(e.target.value)}
-                className="w-full bg-black/20 rounded-xl p-3 text-white text-xl font-bold border border-white/10 focus:ring-2 focus:ring-emerald-500/50 focus:outline-none transition-all"
-              />
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.target_sugar}</label>
+              <div className="nm-inset rounded-2xl p-0.5">
+                 <input 
+                   type="number" step="0.1" value={targetSugar} onChange={(e) => setTargetSugar(e.target.value)}
+                   className="w-full bg-transparent p-3 text-center text-xl font-black text-[#111827] focus:outline-none"
+                 />
+              </div>
             </div>
-            <div className="space-y-1.5 col-span-2 pt-2">
-              <label className="text-xs font-medium text-gray-500 tracking-wide">{t.xe_weight_label}</label>
-              {/* iOS Style Segmented Control */}
-              <div className="flex bg-black/40 rounded-xl overflow-hidden p-1 shadow-inner border border-white/5">
+          </div>
+
+          <div className="space-y-3">
+             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.xe_weight_label}</label>
+             <div className="nm-inset rounded-2xl p-1 flex gap-1">
                 {[10, 11, 12, 15].map(w => (
                   <button 
                     key={w}
                     onClick={() => {
+                        window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
                         setXeWeight(w.toString());
-                        if (window.Telegram?.WebApp?.HapticFeedback) {
-                            window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
-                        }
                     }}
-                    className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-300 ${xeWeight === w.toString() ? 'bg-gradient-to-r from-emerald-400 to-cyan-500 text-gray-900 shadow-md' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                    className={cn(
+                        "flex-1 py-2 text-xs font-black rounded-xl transition-all",
+                        xeWeight === w.toString() ? "nm-outset text-emerald-500" : "text-gray-400"
+                    )}
                   >
                     {w}г
                   </button>
                 ))}
-              </div>
-            </div>
-            <div className="space-y-1.5 col-span-2 pt-3">
-              <label className="text-xs font-medium text-gray-500 tracking-wide">{t.insulin_dia_label || "Длительность действия инсулина (DIA, ч)"}</label>
-              <div className="flex bg-black/40 rounded-xl overflow-hidden p-1 shadow-inner border border-white/5">
+             </div>
+          </div>
+
+          <div className="space-y-3">
+             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.insulin_dia_label}</label>
+             <div className="nm-inset rounded-2xl p-1 flex gap-1 overflow-x-auto scrollbar-hide">
                 {[3, 3.5, 4, 4.5, 5].map(d => (
                   <button
                     key={d}
                     onClick={() => {
-                      setInsulinDia(d.toString());
                       window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
+                      setInsulinDia(d.toString());
                     }}
-                    className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-300 ${insulinDia === d.toString() ? 'bg-gradient-to-r from-purple-400 to-indigo-500 text-white shadow-md' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                    className={cn(
+                        "flex-1 min-w-[50px] py-2 text-xs font-black rounded-xl transition-all",
+                        insulinDia === d.toString() ? "nm-outset text-cyan-500" : "text-gray-400"
+                    )}
                   >
                     {d}ч
                   </button>
                 ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* CGM Settings */}
-        <section className="space-y-4 bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl p-6 rounded-3xl animate-fade-in-up"  style={{ animationDelay: '100ms' }}>
-          <h2 className="text-lg font-extrabold tracking-tight text-white border-b border-white/10 pb-3">{t.cgm_integration || "Интеграция CGM (Мониторинг)"}</h2>
-          
-          <div className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-gray-500 tracking-wide">{t.cgm_source || "Источник данных"}</label>
-              <select 
-                value={cgmType} 
-                onChange={(e) => setCgmType(e.target.value as any)}
-                className="w-full bg-black/20 rounded-xl p-3 text-white text-base font-bold border border-white/10 focus:ring-2 focus:ring-emerald-500/50 focus:outline-none appearance-none transition-all"
-              >
-                <option value="none" className="text-gray-900 bg-white">Отключено</option>
-                <option value="nightscout" className="text-gray-900 bg-white">Nightscout</option>
-              </select>
-            </div>
-
-            {cgmType === 'nightscout' && (
-              <>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-gray-500 tracking-wide">Nightscout URL</label>
-                  <input 
-                    type="url" 
-                    placeholder="https://my-cgm.com"
-                    value={nightscoutUrl} 
-                    onChange={(e) => setNightscoutUrl(e.target.value)}
-                    className="w-full bg-black/20 rounded-xl p-3 text-white text-sm font-medium border border-white/10 focus:ring-2 focus:ring-emerald-500/50 focus:outline-none transition-all"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-gray-500 tracking-wide">{t.cgm_token || "Токен API (Опционально)"}</label>
-                  <input 
-                    type="password" 
-                    placeholder="Только если сайт закрыт"
-                    value={nightscoutToken} 
-                    onChange={(e) => setNightscoutToken(e.target.value)}
-                    className="w-full bg-black/20 rounded-xl p-3 text-white text-sm font-medium border border-white/10 focus:ring-2 focus:ring-emerald-500/50 focus:outline-none transition-all"
-                  />
-                </div>
-              </>
-            )}
+             </div>
           </div>
         </section>
 
         {/* Matrix Settings */}
-        <section className="space-y-4 bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl p-6 rounded-3xl animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <h2 className="text-lg font-extrabold tracking-tight text-white">{t.matrix_settings}</h2>
-            <button 
-              onClick={() => {
-                  handleAddRow();
-                  if (window.Telegram?.WebApp?.HapticFeedback) {
-                      window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-                  }
-              }} 
-              className="text-emerald-400 p-1 px-2 hover:bg-emerald-400/10 rounded-lg flex items-center gap-1.5 text-sm font-bold transition-colors">
-              <Plus className="w-4 h-4" /> {t.add}
-            </button>
+        <section className="space-y-6 nm-outset rounded-[2.5rem] p-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+             <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-cyan-50 flex items-center justify-center">
+                   <TrendingUp className="w-4 h-4 text-cyan-500" />
+                </div>
+                <h2 className="text-sm font-black text-[#111827] uppercase tracking-wider">{t.matrix_settings}</h2>
+             </div>
+             <button 
+               onClick={() => {
+                   window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium');
+                   handleAddRow();
+               }} 
+               className="w-8 h-8 nm-outset nm-active rounded-full flex items-center justify-center text-emerald-500"
+             >
+               <Plus className="w-4 h-4" />
+             </button>
           </div>
           
-          <div className="space-y-3 pt-2">
-            <div className="flex text-xs font-medium text-gray-500 tracking-wide px-1">
-              <span className="flex-1">{t.xe_from}</span>
-              <span className="flex-1 text-center">{t.xe_to}</span>
-              <span className="w-20 text-right pr-6">{t.ins_per_xe}</span>
-            </div>
-
+          <div className="space-y-4 pt-2">
             {matrix.map((row, idx) => (
-              <div key={idx} className="flex gap-3 items-center p-1 group transition-all">
-                <input 
-                  type="number" step="0.1" value={row.min} onChange={(e) => handleUpdateRow(idx, 'min', e.target.value)}
-                  className="w-full bg-black/20 text-white text-center font-bold focus:ring-2 focus:ring-emerald-500/50 border border-white/10 rounded-xl p-2 transition-all"
-                />
-                <span className="text-gray-600 font-bold opacity-80">→</span>
-                <input 
-                  type="number" step="0.1" value={row.max} onChange={(e) => handleUpdateRow(idx, 'max', e.target.value)}
-                  className="w-full bg-black/20 text-white text-center font-bold focus:ring-2 focus:ring-emerald-500/50 border border-white/10 rounded-xl p-2 transition-all"
-                />
-                <span className="text-gray-600 font-bold opacity-80">=</span>
-                <input 
-                  type="number" step="0.1" value={row.coef} onChange={(e) => handleUpdateRow(idx, 'coef', e.target.value)}
-                  className="w-20 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 text-emerald-300 text-center font-black focus:ring-2 focus:ring-emerald-400/50 focus:bg-emerald-500/30 rounded-xl p-2 ml-auto transition-all"
-                />
-                <button onClick={() => handleRemoveRow(idx)} className="text-gray-500 hover:text-red-400 p-2 ml-1 transition-colors rounded-xl hover:bg-red-500/10 opacity-0 group-hover:opacity-100">
-                  <Trash2 className="w-5 h-5" />
-                </button>
+              <div key={idx} className="flex gap-2 items-center group">
+                 <div className="nm-inset rounded-xl p-1 flex-1">
+                    <input 
+                      type="number" step="0.1" value={row.min} onChange={(e) => handleUpdateRow(idx, 'min', e.target.value)}
+                      className="w-full bg-transparent text-center font-bold text-[#111827] text-xs focus:outline-none"
+                    />
+                 </div>
+                 <span className="text-gray-300">→</span>
+                 <div className="nm-inset rounded-xl p-1 flex-1">
+                    <input 
+                      type="number" step="0.1" value={row.max} onChange={(e) => handleUpdateRow(idx, 'max', e.target.value)}
+                      className="w-full bg-transparent text-center font-bold text-[#111827] text-xs focus:outline-none"
+                    />
+                 </div>
+                 <span className="text-gray-300">=</span>
+                 <div className="nm-outset nm-active rounded-xl p-1 w-16 bg-emerald-50/50">
+                    <input 
+                      type="number" step="0.1" value={row.coef} onChange={(e) => handleUpdateRow(idx, 'coef', e.target.value)}
+                      className="w-full bg-transparent text-center font-black text-emerald-600 text-sm focus:outline-none"
+                    />
+                 </div>
+                 <button onClick={() => handleRemoveRow(idx)} className="text-gray-300 hover:text-red-500 p-1 transition-colors">
+                   <Trash2 className="w-4 h-4" />
+                 </button>
               </div>
             ))}
           </div>
         </section>
 
+        {/* CGM Integration */}
+        <section className="space-y-6 nm-outset rounded-[2.5rem] p-6 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+           <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center">
+                 <Syringe className="w-4 h-4 text-purple-500" />
+              </div>
+              <h2 className="text-sm font-black text-[#111827] uppercase tracking-wider">{t.cgm_integration}</h2>
+           </div>
+
+           <div className="space-y-4">
+              <div className="space-y-2">
+                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.cgm_source}</label>
+                 <div className="nm-inset rounded-2xl p-1">
+                    <select 
+                      value={cgmType} 
+                      onChange={(e) => setCgmType(e.target.value as any)}
+                      className="w-full bg-transparent p-3 text-sm font-bold text-[#111827] focus:outline-none appearance-none"
+                    >
+                      <option value="none">Отключено / Disabled</option>
+                      <option value="nightscout">Nightscout</option>
+                    </select>
+                 </div>
+              </div>
+
+              {cgmType === 'nightscout' && (
+                <div className="space-y-4 animate-fade-in-up">
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">URL</label>
+                      <div className="nm-inset rounded-2xl p-1">
+                         <input 
+                           type="url" 
+                           value={nightscoutUrl} 
+                           onChange={(e) => setNightscoutUrl(e.target.value)}
+                           placeholder="https://my.nightscout.io"
+                           className="w-full bg-transparent p-3 text-sm font-medium text-[#111827] focus:outline-none"
+                         />
+                      </div>
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.cgm_token}</label>
+                      <div className="nm-inset rounded-2xl p-1">
+                         <input 
+                           type="password" 
+                           value={nightscoutToken} 
+                           onChange={(e) => setNightscoutToken(e.target.value)}
+                           className="w-full bg-transparent p-3 text-sm font-medium text-[#111827] focus:outline-none"
+                         />
+                      </div>
+                   </div>
+                </div>
+              )}
+           </div>
+        </section>
+
+        {/* Save Button */}
         <button 
-          onClick={() => {
-              if (window.Telegram?.WebApp?.HapticFeedback) {
-                  window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
-              }
+           onClick={() => {
+              window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('heavy');
               handleSave();
-          }}
-          disabled={isSaving}
-          className="w-full bg-gradient-to-r from-emerald-400 to-cyan-500 hover:opacity-90 text-gray-900 p-4 rounded-3xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-2xl shadow-emerald-500/20 disabled:opacity-50 mt-10"
+           }}
+           disabled={isSaving}
+           className="w-full nm-outset nm-active bg-emerald-500 p-6 rounded-[2rem] text-white font-black uppercase tracking-widest shadow-[inset_0_0_20px_rgba(255,255,255,0.2)] disabled:opacity-50"
         >
-          <Save className="w-6 h-6" />
-          {isSaving ? 'Сохранение...' : t.save}
+           {isSaving ? '...' : t.save}
         </button>
 
         {isAdmin && (
-          <div className="mt-8 pt-8 border-t border-white/10">
-            <Link 
-              href="/admin"
-              className="w-full bg-white/5 border border-white/10 hover:bg-white/10 p-4 rounded-3xl font-bold flex items-center justify-between transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-emerald-500/10 rounded-xl group-hover:scale-110 transition-transform">
-                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                </div>
-                <div className="text-left">
-                    <div className="text-white">Панель администратора</div>
-                    <div className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">👑 Только для создателя</div>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-gray-700 group-hover:text-emerald-400 transition-colors" />
-            </Link>
-          </div>
+           <Link 
+             href="/admin"
+             className="flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest hover:text-emerald-500 transition-colors pt-4 pb-10"
+           >
+              <ShieldCheck className="w-4 h-4" />
+              Admin Panel
+           </Link>
         )}
       </div>
     </main>
