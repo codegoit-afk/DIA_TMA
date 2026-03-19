@@ -59,44 +59,52 @@ export default function Home() {
   }, [user]);
 
   const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.readAsDataURL(file);
       reader.onload = (event) => {
         const img = new Image();
         img.src = event.target?.result as string;
+        img.onerror = () => reject(new Error("Image load error"));
         img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const MAX_WIDTH = 1024;
-          const MAX_HEIGHT = 1024;
-          let width = img.width;
-          let height = img.height;
+          try {
+            const canvas = document.createElement("canvas");
+            const MAX_WIDTH = 1024;
+            const MAX_HEIGHT = 1024;
+            let width = img.width;
+            let height = img.height;
 
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height *= MAX_WIDTH / width;
+                width = MAX_WIDTH;
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width *= MAX_HEIGHT / height;
+                height = MAX_HEIGHT;
+              }
             }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx?.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL("image/jpeg", 0.7));
+          } catch (e) {
+            reject(e);
           }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext("2d");
-          ctx?.drawImage(img, 0, 0, width, height);
-          const compressed = canvas.toDataURL("image/jpeg", 0.7);
-          resolve(compressed);
         };
       };
+      reader.onerror = () => reject(new Error("FileReader error"));
+      reader.readAsDataURL(file);
     });
   };
 
   const handleSugarChange = (val: string) => {
+    // Keep raw string in state, but normalize for internal checks
+    const normalized = val.replace(',', '.');
     setCalculatorState(prev => ({ ...prev, sugar: val }));
-    const num = parseFloat(val.replace(',', '.'));
+    
+    const num = parseFloat(normalized);
     if (!isNaN(num)) {
        if (num < 3.9) {
           setSugarError(t.sugar_low_warning);
@@ -133,6 +141,8 @@ export default function Home() {
         setToastMessage("Error processing images");
     } finally {
         setIsPhotoLoading(false);
+        // Clear the input value so that re-uploading the same file works
+        e.target.value = ''; 
     }
   };
 
@@ -140,8 +150,9 @@ export default function Home() {
     if (!sugar) return;
     setIsPhotoLoading(true);
     try {
+        const cleanSugar = sugar.toString().replace(',', '.').replace(/[^\d.]/g, '');
         const res = await axios.post('/api/calculate', {
-            sugar: parseFloat(sugar.replace(',', '.')),
+            sugar: parseFloat(cleanSugar),
             images: base64Images,
             description: foodText,
             telegram_id: user?.telegram_id || 804617505
