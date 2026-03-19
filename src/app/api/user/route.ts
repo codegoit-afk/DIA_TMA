@@ -11,7 +11,7 @@ export async function POST(req: Request) {
 
     // 1. Try to fetch the user to see if they exist
     let { data: user, error } = await supabaseAdmin
-      .from('users')
+      .from('profiles')
       .select('*')
       .eq('telegram_id', id)
       .single();
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       };
 
       const { data: createdUser, error: insertError } = await supabaseAdmin
-         .from('users')
+         .from('profiles')
          .insert([newUser])
          .select()
          .single();

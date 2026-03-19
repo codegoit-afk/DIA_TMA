@@ -289,10 +289,10 @@ function HomeContent() {
 
   return (
     <main className="min-h-screen p-4 max-w-md mx-auto relative pb-28">
-      {/* Global Splash Screen Overlay */}
+      {/* Global Splash Screen Overlay - Animation handled by CSS for maximum stability */}
       {showSplash && (
-        <div className="fixed inset-0 bg-[#0f1115] z-[100] flex flex-col items-center justify-center">
-           <div className="w-64 h-64 bg-indigo-500/20 rounded-full blur-[80px] absolute pointer-events-none" />
+        <div className="fixed inset-0 bg-[#0f1115] z-[100] flex flex-col items-center justify-center pointer-events-none transition-opacity duration-1000 opacity-100">
+           <div className="w-64 h-64 bg-indigo-500/20 rounded-full blur-[80px] absolute" />
            <Calculator className="w-16 h-16 text-indigo-400 mb-4 animate-bounce" />
            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400 tracking-tight animate-pulse">
               {t.app_title}

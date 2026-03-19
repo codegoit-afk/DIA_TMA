@@ -42,10 +42,12 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
   const [calculatorState, setCalculatorState] = useState<CalculatorState>(defaultCalcState);
   const [language, setLanguage] = useState<Language>('ru');
   const [showSplash, setShowSplash] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   const t = translations[language];
 
   useEffect(() => {
+    setMounted(true);
     const initTelegram = async () => {
       // @ts-ignore
       const WebApp = window.Telegram?.WebApp;
@@ -153,6 +155,10 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
         }
     };
   }, []);
+
+  if (!mounted) {
+    return <div className="min-h-screen bg-slate-950" />;
+  }
 
   return (
       <TelegramContext.Provider value={{ user, calculatorState, setCalculatorState, language, setLanguage, t, showSplash, setShowSplash }}>
