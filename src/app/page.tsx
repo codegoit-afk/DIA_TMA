@@ -14,7 +14,8 @@ import {
   ArrowRight,
   Info,
   Calendar,
-  Loader2
+  Loader2,
+  Image as ImageIcon
 } from "lucide-react";
 import Link from "next/link";
 import { useUser } from "@/components/providers/TelegramProvider";
@@ -25,7 +26,8 @@ import { User } from "@/types";
 
 export default function Home() {
   const { user, calculatorState, setCalculatorState, language, t, showSplash } = useUser();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputCameraRef = useRef<HTMLInputElement>(null);
+  const fileInputGalleryRef = useRef<HTMLInputElement>(null);
 
   const { sugar, previewUrls, base64Images, result, aiData } = calculatorState;
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
@@ -147,7 +149,6 @@ export default function Home() {
       if (!result || !aiData) return;
       
       try {
-          // ... (rest of the logic)
           // Average for history
           const effectiveXe = xeOverride && parseFloat(xeOverride) > 0 ? parseFloat(xeOverride) : parseFloat(((result.xe_min + result.xe_max) / 2).toFixed(1));
           const avgDose = parseFloat(((result.dose_min + result.dose_max) / 2).toFixed(1));
@@ -311,7 +312,15 @@ export default function Home() {
             accept="image/*" 
             multiple
             capture="environment" 
-            ref={fileInputRef}
+            ref={fileInputCameraRef}
+            onChange={handleFileChange}
+            className="hidden"
+        />
+        <input 
+            type="file" 
+            accept="image/*" 
+            multiple
+            ref={fileInputGalleryRef}
             onChange={handleFileChange}
             className="hidden"
         />
@@ -380,31 +389,46 @@ export default function Home() {
                 </div>
              ) : (
                 <div className="flex flex-col items-center justify-center py-6 gap-8">
-                  <div className="flex items-center gap-8">
+                  <div className="flex flex-wrap items-center justify-center gap-4 w-full">
+                    {/* Camera Button */}
                     <button
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => fileInputCameraRef.current?.click()}
                       disabled={!sugar || !!sugarError}
                       className={cn(
-                          "w-48 h-48 rounded-[3rem] flex flex-col items-center justify-center gap-4 transition-all duration-300 active:scale-95 group",
-                          (!sugar || sugarError) ? "opacity-40 grayscale" : "nm-outset nm-active p-8"
+                          "w-36 h-36 rounded-[2.5rem] flex flex-col items-center justify-center gap-2 transition-all duration-300 active:scale-95 group",
+                          (!sugar || sugarError) ? "opacity-40 grayscale" : "nm-outset nm-active p-6"
                       )}
                     >
-                      <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center shadow-[0_0_30px_rgba(52,211,153,0.2)]">
-                          <Camera className="w-10 h-10 text-emerald-500" />
+                      <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center shadow-[0_0_20px_rgba(52,211,153,0.2)]">
+                          <Camera className="w-6 h-6 text-emerald-500" />
                       </div>
-                      <span className="text-sm font-black text-[#111827] uppercase tracking-widest">
-                         {t.analyze_btn}
+                      <span className="text-[10px] font-black text-[#111827] uppercase tracking-widest text-center leading-tight">
+                         {t.camera_btn || "Camera"}
                       </span>
                     </button>
 
-                    <div className="flex flex-col items-center gap-4">
+                    {/* Gallery Button */}
+                    <button
+                      onClick={() => fileInputGalleryRef.current?.click()}
+                      disabled={!sugar || !!sugarError}
+                      className={cn(
+                          "w-36 h-36 rounded-[2.5rem] flex flex-col items-center justify-center gap-2 transition-all duration-300 active:scale-95 group",
+                          (!sugar || sugarError) ? "opacity-40 grayscale" : "nm-outset nm-active p-6"
+                      )}
+                    >
+                      <div className="w-12 h-12 rounded-full bg-cyan-50 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+                          <ImageIcon className="w-6 h-6 text-cyan-500" />
+                      </div>
+                      <span className="text-[10px] font-black text-[#111827] uppercase tracking-widest text-center leading-tight">
+                         {t.gallery_btn || "Gallery"}
+                      </span>
+                    </button>
+
+                    {/* Voice Option */}
+                    <div className="flex flex-col items-center gap-3 mt-2">
                       <VoiceRecorder 
                         disabled={!sugar || !!sugarError}
-                        onTranscription={(text) => {
-                          setFoodText(text);
-                          // Delay slightly so user sees the text before auto-analyzing if desired, 
-                          // but here we just set it and let them hit calculate or we could auto-trigger.
-                        }} 
+                        onTranscription={(text) => setFoodText(text)} 
                       />
                       <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t.voice_button}</span>
                     </div>

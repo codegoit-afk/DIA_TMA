@@ -131,7 +131,9 @@ export const translations = {
     voice_recording: "Запись...",
     voice_processing: "Распознаю...",
     voice_error: "Ошибка записи",
-    voice_stop: "Нажми, чтобы стоп"
+    voice_stop: "Нажми, чтобы стоп",
+    camera_btn: "Камера",
+    gallery_btn: "Галерея"
   },
   ua: {
     app_title: "Калькулятор ХО",
@@ -263,7 +265,9 @@ export const translations = {
     voice_recording: "Запис...",
     voice_processing: "Розпізнаю...",
     voice_error: "Помилка запису",
-    voice_stop: "Натисни, щоб стоп"
+    voice_stop: "Натисни, щоб стоп",
+    camera_btn: "Камера",
+    gallery_btn: "Галерея"
   },
   en: {
     app_title: "Carb Calculator",
@@ -395,6 +399,8 @@ export const translations = {
     voice_recording: "Recording...",
     voice_processing: "Processing...",
     voice_error: "Recording error",
-    voice_stop: "Tap to stop"
+    voice_stop: "Tap to stop",
+    camera_btn: "Camera",
+    gallery_btn: "Gallery"
   }
 };
