@@ -132,7 +132,7 @@ export async function POST(req: Request) {
     }
 
     let dps = 0;
-    if (numSugar > profile.target_sugar_max && profile.isf && profile.isf > 0) {
+    if (profile.target_sugar_max && numSugar > profile.target_sugar_max && profile.isf && profile.isf > 0) {
         dps = (numSugar - profile.target_sugar_ideal) / profile.isf;
     }
 
