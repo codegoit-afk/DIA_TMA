@@ -15,59 +15,33 @@ export async function GET(req: Request) {
 
         const results: any = {
             timestamp: new Date().toISOString(),
-            env: {
-                has_url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-                has_service_key: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-                admin_id_match: telegram_id === admin_id
-            }
         };
 
-        // 1. Check Profiles Table
-        const { data: profiles, error: pError, count: pCount } = await supabaseAdmin
+        // 1. Check Profiles
+        const { count: pCount, error: pError } = await supabaseAdmin
             .from('profiles')
+            .select('*', { count: 'exact', head: true });
+        
+        results.profiles = { count: pCount, error: pError };
+
+        // 2. Check "users" table (the one causing the constraint error)
+        const { data: uData, count: uCount, error: uError } = await supabaseAdmin
+            .from('users')
             .select('*', { count: 'exact', head: false })
             .limit(5);
         
-        results.profiles = {
-            count: pCount,
-            error: pError,
-            sample: profiles,
-            is_empty: !profiles || profiles.length === 0
-        };
+        results.users_table = { count: uCount, error: uError, sample: uData };
 
-        // 2. Check Logs Table (to verify connection is working)
-        const { count: lCount, error: lError } = await supabaseAdmin
+        // 3. Check logs
+        const { count: lCount } = await supabaseAdmin
             .from('food_logs')
             .select('*', { count: 'exact', head: true });
         
-        results.logs = {
-            count: lCount,
-            error: lError
-        };
-
-        // 3. Try a "Bare Minimum" Insert
-        const testId = Math.floor(Math.random() * 10000) + 99999;
-        const { data: tData, error: tError } = await supabaseAdmin
-            .from('profiles')
-            .insert({ 
-                telegram_id: testId,
-                role: 'user',
-                hypo_threshold: 4,
-                target_sugar_ideal: 6,
-                xe_weight: 12,
-                insulin_dia: 4,
-                coef_matrix: []
-            })
-            .select();
-        
-        results.test_insert = {
-            data: tData,
-            error: tError
-        };
+        results.logs = { count: lCount };
 
         return NextResponse.json({ success: true, results });
 
     } catch (e: any) {
-        return NextResponse.json({ success: false, error: e.message, stack: e.stack });
+        return NextResponse.json({ success: false, error: e.message });
     }
 }
